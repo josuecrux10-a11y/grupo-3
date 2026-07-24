@@ -37,18 +37,11 @@ const upload = multer({
 });
 // Crear una conexión con la base de datos MySQL
 const conexion = mysql.createConnection({
-
-    // Dirección del servidor donde se encuentra la base de datos
-    host: "localhost",
-
-    // Usuario con permisos para acceder a MySQL
-    user: "root",
-
-    // Contraseña del usuario de MySQL
-    password: "123456",
-
-    // Nombre de la base de datos que utilizará la aplicación
-    database: "portal_estudiantil"
+    host: process.env.MYSQLHOST,
+    user: process.env.MYSQLUSER,
+    password: process.env.MYSQLPASSWORD,
+    database: process.env.MYSQLDATABASE,
+    port: process.env.MYSQLPORT
 });
 
 function verificarCarpetaRespaldos() {
@@ -3619,9 +3612,11 @@ app.get("/descargar-respaldo/:respaldo/:archivo", (req, res) => {
 
 });
 
-app.listen(3000, () => {
+const PORT = process.env.PORT || 3000;
 
-    console.log("Servidor ejecutándose en puerto 3000");
+app.listen(PORT, () => {
+
+    console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 
     setInterval(() => {
 
