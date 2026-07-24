@@ -37,7 +37,7 @@ const upload = multer({
 });
 // Crear una conexión con la base de datos MySQL
 const conexion = mysql.createConnection(
-    "mysql://root:IrRSmzsnDMzfrWKzWxKZmcmZhyYjTjoU@mysql.railway.internal:3306/railway"
+   process.env.MYSQL_URL || "mysql://root:IrRSmzsnDMzfrWKzWxKZmcmZhyYjTjoU@mysql.railway.internal:3306/railway"
 );
 
 function verificarCarpetaRespaldos() {
