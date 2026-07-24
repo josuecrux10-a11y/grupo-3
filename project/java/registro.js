@@ -251,7 +251,7 @@ async function registrar() {
         }
 
         const existeRes = await fetch(
-            "http://localhost:3000/verificar-usuario",
+            "/verificar-usuario",
             {
                 method: "POST",
                 headers: {
