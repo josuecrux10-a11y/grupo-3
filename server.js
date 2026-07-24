@@ -44,18 +44,20 @@ const upload = multer({
 // CONEXIÓN A MYSQL CON POOL (PARA RAILWAY)
 // ============================================
 
+// ============================================
+// CONEXIÓN A MYSQL CON POOL (PARA RAILWAY)
+// ============================================
+
 let pool;
 let conexionActiva = true;
 
 function crearConexionMySQL() {
-    // Si existe DATABASE_URL, usarla directamente
     if (process.env.DATABASE_URL) {
         console.log('📡 Usando DATABASE_URL para conectar a MySQL');
         pool = mysql.createPool(process.env.DATABASE_URL);
         return pool;
     }
     
-    // Sino, usar variables individuales
     pool = mysql.createPool({
         host: process.env.DB_HOST || "localhost",
         user: process.env.DB_USER || "root",
@@ -79,7 +81,6 @@ function reconectarMySQL() {
     pool = crearConexionMySQL();
     conexion = pool;
     
-    // Verificar conexión
     pool.getConnection((err, connection) => {
         if (err) {
             console.error('❌ Error reconectando:', err.message);
@@ -100,6 +101,20 @@ pool.on('error', (err) => {
         err.code === 'ECONNRESET' ||
         err.code === 'ETIMEDOUT') {
         reconectarMySQL();
+    }
+});
+
+// Verificar conexión inicial
+pool.getConnection((error, connection) => {
+    if (error) {
+        console.log("❌ Error de conexión:", error.message);
+        conexionActiva = false;
+        setTimeout(reconectarMySQL, 5000);
+    } else {
+        console.log("✅ Conectado a MySQL");
+        conexionActiva = true;
+        verificarCarpetaRespaldos();
+        connection.release();
     }
 });
 
