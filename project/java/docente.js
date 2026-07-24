@@ -154,7 +154,7 @@ async function cargarPerfilDocente(){
 
     const respuesta =
         await fetch(
-            `http://localhost:3000/perfil-docente/${sesion.id}`
+            `/perfil-docente/${sesion.id}`
         );
 
     const datos =
@@ -517,7 +517,7 @@ async function guardarCalificacion(usuarioAlumno, nombreAlumno) {
     try {
 
         const respuesta = await fetch(
-            "http://localhost:3000/guardar-conducta",
+            "/guardar-conducta",
             {
                 method: "POST",
                 headers: {
@@ -828,7 +828,7 @@ async function guardarNotaDocente(usuarioAlumno, nombreAlumno) {
     try {
 
         const respuesta = await fetch(
-            "http://localhost:3000/guardar-nota",
+            "/guardar-nota",
             {
                 method: "POST",
                 headers: {
@@ -872,7 +872,7 @@ async function cargarMateriasDocente(selectId){
 
     const respuesta =
         await fetch(
-            `http://localhost:3000/materias-docente/${sesion.id}`
+            `/materias-docente/${sesion.id}`
         );
 
     const datos =
@@ -914,7 +914,7 @@ async function publicarForoDocente() {
     }
 
     await fetch(
-        "http://localhost:3000/crear-foro",
+        "/crear-foro",
         {
             method:"POST",
             headers:{
@@ -941,7 +941,7 @@ async function cargarForoDocente() {
 
     const respuesta =
         await fetch(
-            "http://localhost:3000/foros"
+            "/foros"
         );
 
     const foros =
@@ -975,7 +975,7 @@ async function cargarForoDocente() {
 
         const respuestaRespuestas =
             await fetch(
-                `http://localhost:3000/respuestas-foro/${f.id}`
+                `/respuestas-foro/${f.id}`
             );
 
         const respuestas =
@@ -1065,7 +1065,7 @@ async function eliminarForo(idForo) {
     try {
 
         await fetch(
-            "http://localhost:3000/eliminar-foro",
+            "/eliminar-foro",
             {
                 method:"POST",
                 headers:{
@@ -1094,7 +1094,7 @@ async function verificarFechaInicio() {
     try {
 
         const respuesta = await fetch(
-            `http://localhost:3000/fecha-inicio/${sesion.id}`
+            `/fecha-inicio/${sesion.id}`
         );
 
         const datos = await respuesta.json();
@@ -1132,7 +1132,7 @@ async function verificarFechaInicio() {
             }
 
             const respuestaGuardar = await fetch(
-                "http://localhost:3000/guardar-fecha-inicio",
+                "/guardar-fecha-inicio",
                 {
                     method: "POST",
                     headers: {
@@ -1193,7 +1193,7 @@ async function cargarCursosAsistencia() {
     try {
 
         const respuesta = await fetch(
-            "http://localhost:3000/cursos-asistencia"
+            "/cursos-asistencia"
         );
         
         const cursos =
@@ -1269,7 +1269,7 @@ try{
     window.especialidadActual = carrera || "";
 
     const respuesta = await fetch(
-        `http://localhost:3000/alumnos-asistencia?curso=${curso}&paralelo=${paralelo}&especialidad=${carrera || ""}`
+        `/alumnos-asistencia?curso=${curso}&paralelo=${paralelo}&especialidad=${carrera || ""}`
     );
 
     alumnos = await respuesta.json();
@@ -1512,7 +1512,7 @@ async function cargarTablaHistorial(paralelo, alumnos) {
     let paraleloReal = partes[1];
 
 const respuesta = await fetch(
-    `http://localhost:3000/asistencias-paralelo?curso=${curso}&paralelo=${paraleloReal}`
+    `/asistencias-paralelo?curso=${curso}&paralelo=${paraleloReal}`
 );
 
     const registros = await respuesta.json();
@@ -1615,7 +1615,7 @@ async function cargarDatosDocentePerfil(){
 
         const respuesta =
             await fetch(
-                `http://localhost:3000/datos-docente/${sesion.id}`
+                `/datos-docente/${sesion.id}`
             );
 
         const datos =
@@ -1674,7 +1674,7 @@ async function guardarAsistenciaDelDia(paralelo, carrera) {
                     : "A";
 
             await fetch(
-                "http://localhost:3000/guardar-asistencia",
+                "/guardar-asistencia",
                 {
                     method: "POST",
                     headers: {
@@ -1718,7 +1718,7 @@ async function cargarHistorialAsistencia(
 ) {
 
     const respuesta = await fetch(
-        `http://localhost:3000/asistencias-paralelo/${paralelo}`
+        `/asistencias-paralelo/${paralelo}`
     );
 
     const registros = await respuesta.json();
@@ -1829,7 +1829,7 @@ async function guardarDocente(){
 
     try{
         const respuesta = await fetch(
-            "http://localhost:3000/guardar-perfil-docente",
+            "/guardar-perfil-docente",
             {
                 method:"POST",
                 headers:{
@@ -1955,7 +1955,7 @@ async function mostrarPerfilProfesor(idDocente){
 
     const respuesta =
         await fetch(
-            `http://localhost:3000/perfil-docente/${idDocente}`
+            `/perfil-docente/${idDocente}`
         );
 
     const datos =
@@ -2073,7 +2073,7 @@ async function guardarQuizziz() {
     try {
         // OBTENER LA MATERIA ASIGNADA AL DOCENTE
         const respuestaMateria = await fetch(
-            `http://localhost:3000/materia-docente/${sesion.id}`
+            `/materia-docente/${sesion.id}`
         );
 
         const datosMateria = await respuestaMateria.json();
@@ -2087,7 +2087,7 @@ async function guardarQuizziz() {
         console.log("📚 Materia asignada al docente:", datosMateria);
 
         const respuesta = await fetch(
-            "http://localhost:3000/quizzes",
+            "/quizzes",
             {
                 method: "POST",
                 headers: {
@@ -2153,7 +2153,7 @@ async function cargarResultadosQuizziz() {
     try {
 
         const respuesta = await fetch(
-            `http://localhost:3000/resultados-quiz-docente/${sesion.id}`
+            `/resultados-quiz-docente/${sesion.id}`
         );
 
         if (!respuesta.ok) {
@@ -2327,7 +2327,7 @@ async function notasEstanBloqueadas(){
 
     const respuesta = await fetch(
 
-        "http://localhost:3000/estado-control-academico"
+        "/estado-control-academico"
 
     );
 
@@ -2343,7 +2343,7 @@ async function conductaEstaBloqueada(){
 
     const respuesta = await fetch(
 
-        "http://localhost:3000/estado-control-academico"
+        "/estado-control-academico"
 
     );
 
@@ -2358,7 +2358,7 @@ async function conductaEstaBloqueada(){
 async function verificarBloqueoNotas(){
 
     const respuesta = await fetch(
-        "http://localhost:3000/estado-control-academico"
+        "/estado-control-academico"
     );
 
     const datos = await respuesta.json();
@@ -2376,7 +2376,7 @@ async function verificarBloqueoNotas(){
 async function verificarBloqueoConducta(){
 
     const respuesta = await fetch(
-        "http://localhost:3000/estado-control-academico"
+        "/estado-control-academico"
     );
 
     const datos = await respuesta.json();

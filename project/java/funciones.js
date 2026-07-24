@@ -2,7 +2,7 @@ async function obtenerTodosAlumnos() {
 
     try {
 
-        const res = await fetch("http://localhost:3000/usuarios");
+        const res = await fetch("/usuarios");
         const usuarios = await res.json();
 
         return usuarios.filter(
@@ -21,7 +21,7 @@ async function obtenerAsistencias() {
     try {
 
         const res = await fetch(
-            "http://localhost:3000/asistencias"
+            "/asistencias"
         );
 
         return await res.json();

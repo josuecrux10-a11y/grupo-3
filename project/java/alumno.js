@@ -2,7 +2,7 @@ async function cargarForoAlumno() {
 
     const respuesta =
     await fetch(
-        "http://localhost:3000/foros"
+        "/foros"
     );
 
     const foros =
@@ -35,7 +35,7 @@ async function cargarForoAlumno() {
 
 const respuestaRespuestas =
     await fetch(
-        `http://localhost:3000/respuestas-foro/${f.id}`
+        `/respuestas-foro/${f.id}`
     );
 
 const respuestas =
@@ -145,7 +145,7 @@ async function responderDebate(idForo) {
     try {
 
         await fetch(
-            "http://localhost:3000/responder-foro",
+            "/responder-foro",
             {
                 method: "POST",
                 headers: {
@@ -185,7 +185,7 @@ async function cargarConductaAlumno() {
     try {
 
         const respuesta = await fetch(
-            `http://localhost:3000/conductas/${user.id}`
+            `/conductas/${user.id}`
         );
 
         const conductasAlumno = await respuesta.json();
@@ -279,7 +279,7 @@ async function guardarPerfil() {
 
     try {
 
-        const respuesta = await fetch("http://localhost:3000/guardar-perfil", {
+        const respuesta = await fetch("/guardar-perfil", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -319,7 +319,7 @@ async function verPerfilDocente(idDocente){
     try{
 
         const respuesta = await fetch(
-            `http://localhost:3000/perfil-docente/${idDocente}`
+            `/perfil-docente/${idDocente}`
         );
 
         const datos = await respuesta.json();
@@ -388,7 +388,7 @@ async function verificarNombreReal(){
 
         const respuesta =
             await fetch(
-                `http://localhost:3000/perfil/${sesion.id}`
+                `/perfil/${sesion.id}`
             );
 
         const perfil = await respuesta.json();
@@ -489,7 +489,7 @@ async function calcularPorcentajes(paralelo, alumnos) {
     let paraleloReal = partes[1];
 
     const respuesta = await fetch(
-    `http://localhost:3000/asistencias-paralelo?curso=${curso}&paralelo=${paraleloReal}`
+    `/asistencias-paralelo?curso=${curso}&paralelo=${paraleloReal}`
     );
 
     const registros = await respuesta.json();
@@ -558,7 +558,7 @@ async function calcularPromedios() {
     if (!user) return;
 
     const respuesta = await fetch(
-        `http://localhost:3000/notas/${user.id}`
+        `/notas/${user.id}`
     );
 
     const notasAlumno = await respuesta.json();
@@ -656,7 +656,7 @@ async function cargarMateriasAlumno() {
 
     try {
 
-        const respuesta = await fetch("http://localhost:3000/docentes-asignados");
+        const respuesta = await fetch("/docentes-asignados");
 
         const docentesAsignados = await respuesta.json();
 
@@ -717,7 +717,7 @@ async function cargarQuizzizAlumno() {
 
         const respuesta =
             await fetch(
-                "http://localhost:3000/quizzes"
+                "/quizzes"
             );
 
         const quizzes =
@@ -795,7 +795,7 @@ async function iniciarQuizziz(id) {
         // Verificar si ya respondió
         const verificacion =
             await fetch(
-                `http://localhost:3000/quiz-respondido/${id}/${sesion.id}`
+                `/quiz-respondido/${id}/${sesion.id}`
             );
 
         const estado =
@@ -812,7 +812,7 @@ async function iniciarQuizziz(id) {
 
         const respuesta =
             await fetch(
-                `http://localhost:3000/quizzes/${id}`
+                `/quizzes/${id}`
             );
 
         const quizziz =
@@ -1058,7 +1058,7 @@ switch(p.respuesta_correcta){
     try{
 
         await fetch(
-            "http://localhost:3000/resultados_quiz",
+            "/resultados_quiz",
             {
                 method:"POST",
                 headers:{
@@ -1103,7 +1103,7 @@ async function cargarHorarioAlumno() {
     }
 
     try {
-        const res = await fetch(`http://localhost:3000/horario-alumno/${sesion.id}`);
+        const res = await fetch(`/horario-alumno/${sesion.id}`);
         
         if (!res.ok) {
             console.error("❌ Error en la respuesta:", res.status);

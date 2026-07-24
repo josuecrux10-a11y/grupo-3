@@ -194,7 +194,7 @@ async function solicitarRestablecimiento(){
         const sesion = JSON.parse(localStorage.getItem("sesion"));
 
         const respuesta = await fetch(
-            "http://localhost:3000/solicitar-restablecer-asistencia",
+            "/solicitar-restablecer-asistencia",
             {
                 method:"POST",
                 headers:{
@@ -232,7 +232,7 @@ async function cargarSolicitudesSoporte(){
     try{
 
         const respuesta = await fetch(
-            "http://localhost:3000/autorizaciones-pendientes"
+            "/autorizaciones-pendientes"
         );
 
         const solicitudes = await respuesta.json();
@@ -320,7 +320,7 @@ async function aprobarAutorizacion(id){
         );
 
         const respuesta = await fetch(
-            "http://localhost:3000/aprobar-autorizacion",
+            "/aprobar-autorizacion",
             {
                 method:"POST",
                 headers:{
@@ -368,7 +368,7 @@ async function verificarAutorizacionRestablecimiento(){
         );
 
         const respuesta = await fetch(
-            `http://localhost:3000/autorizacion-restablecimiento/${sesion.id}`
+            `/autorizacion-restablecimiento/${sesion.id}`
         );
 
         const datos = await respuesta.json();
@@ -453,7 +453,7 @@ async function enviarTicket(){
     try{
 
         const respuesta = await fetch(
-            "http://localhost:3000/crear-ticket",
+            "/crear-ticket",
             {
 
                 method:"POST",
@@ -509,7 +509,7 @@ async function cargarTicketsSoporte(){
     try{
 
         const respuesta = await fetch(
-            "http://localhost:3000/tickets-soporte"
+            "/tickets-soporte"
         );
 
         const tickets = await respuesta.json();
@@ -605,7 +605,7 @@ if(sesionSoporte){
     try{
 
         const respuesta = await fetch(
-            "http://localhost:3000/tickets-soporte"
+            "/tickets-soporte"
         );
 
         const tickets = await respuesta.json();
@@ -619,7 +619,7 @@ if(sesionSoporte){
         if(sesionNormal && ticket.estado === "resuelto"){
 
             await fetch(
-                `http://localhost:3000/ticket-visto/${ticket.id}`,
+                `/ticket-visto/${ticket.id}`,
                 {
                     method:"PUT"
                 }
@@ -705,7 +705,7 @@ async function guardarRespuestaTicket(){
 
         const peticion = await fetch(
 
-            "http://localhost:3000/responder-ticket",
+            "/responder-ticket",
 
             {
 
@@ -767,7 +767,7 @@ async function cargarMisTickets(){
 
         const respuesta = await fetch(
 
-            `http://localhost:3000/mis-tickets/${sesion.id}`
+            `/mis-tickets/${sesion.id}`
 
         );
 
@@ -852,7 +852,7 @@ async function verMiTicket(id){
     try{
 
         const respuesta = await fetch(
-            "http://localhost:3000/tickets-soporte"
+            "/tickets-soporte"
         );
 
         const tickets = await respuesta.json();
@@ -918,7 +918,7 @@ async function verificarRespuestasSoporte(){
 
         const respuesta = await fetch(
 
-            `http://localhost:3000/notificaciones-soporte/${sesion.id}`
+            `/notificaciones-soporte/${sesion.id}`
 
         );
 
@@ -949,7 +949,7 @@ async function revisarRespuestasSoporte(){
 
         const respuesta = await fetch(
 
-            `http://localhost:3000/tickets-no-vistos/${sesion.id}`
+            `/tickets-no-vistos/${sesion.id}`
 
         );
 
@@ -983,7 +983,7 @@ async function buscarUsuarios(){
 
         const respuesta =
         await fetch(
-            "http://localhost:3000/usuarios-soporte"
+            "/usuarios-soporte"
         );
 
         const usuarios =
@@ -1048,7 +1048,7 @@ async function administrarUsuario(id) {
 
     try {
         const respuesta = await fetch(
-            `http://localhost:3000/usuario-soporte/${id}`
+            `/usuario-soporte/${id}`
         );
 
         if (!respuesta.ok) {
@@ -1160,7 +1160,7 @@ async function habilitarEdicionPerfil(usuario_id){
 
         const respuesta = await fetch(
 
-            `http://localhost:3000/habilitar-edicion-perfil/${usuario_id}`,
+            `/habilitar-edicion-perfil/${usuario_id}`,
 
             {
                 method:"PUT"
@@ -1224,10 +1224,10 @@ async function restablecerContrasena(usuario_id) {
         }
 
         console.log("📡 Enviando petición al servidor...");
-        console.log("📡 URL:", `http://localhost:3000/restablecer-contrasena/${usuario_id}`);
+        console.log("📡 URL:", `/restablecer-contrasena/${usuario_id}`);
 
         const respuesta = await fetch(
-            `http://localhost:3000/restablecer-contrasena/${usuario_id}`,
+            `/restablecer-contrasena/${usuario_id}`,
             {
                 method: "PUT",
                 headers: {
@@ -1281,7 +1281,7 @@ async function restablecerContrasena(usuario_id) {
         alert(
             "❌ Error al restablecer la contraseña.\n\n" +
             "Detalles: " + error.message + "\n\n" +
-            "⚠️ Verifica que el servidor esté corriendo en http://localhost:3000\n" +
+            "⚠️ Verifica que el servidor esté corriendo en \n" +
             "⚠️ Revisa la consola del servidor para más detalles."
         );
     } finally {
@@ -1303,7 +1303,7 @@ async function verificarYCambiarContrasenaAlumno(usuario_id) {
         console.log("🔍 Verificando si la contraseña es temporal para el usuario:", usuario_id);
         
         const respuesta = await fetch(
-            "http://localhost:3000/verificar-contrasena-temporal",
+            "/verificar-contrasena-temporal",
             {
                 method: "POST",
                 headers: {
@@ -1395,7 +1395,7 @@ async function cambiarContrasenaAlumno() {
         console.log("📡 Enviando petición para cambiar contraseña del alumno...");
 
         const respuesta = await fetch(
-            "http://localhost:3000/cambiar-contrasena",
+            "/cambiar-contrasena",
             {
                 method: "PUT",
                 headers: {
@@ -1467,7 +1467,7 @@ async function desbloquearPerfilDocente(usuario_id){
     try{
 
         const respuesta = await fetch(
-            `http://localhost:3000/desbloquear-perfil-docente/${usuario_id}`,
+            `/desbloquear-perfil-docente/${usuario_id}`,
             {
                 method:"PUT"
             }
@@ -1507,7 +1507,7 @@ async function restablecerFechaInicioDocente(usuario_id){
 
     const respuesta = await fetch(
 
-        `http://localhost:3000/restablecer-fecha-inicio/${usuario_id}`,
+        `/restablecer-fecha-inicio/${usuario_id}`,
 
         {
 
@@ -1555,7 +1555,7 @@ async function desbloquearNotasDocente(docenteId){
 
         const respuesta = await fetch(
 
-            "http://localhost:3000/desbloquear-notas-docente",
+            "/desbloquear-notas-docente",
 
             {
 
@@ -1637,7 +1637,7 @@ async function desbloquearConductaDocente(docenteId){
 
         const respuesta = await fetch(
 
-            "http://localhost:3000/desbloquear-conducta-docente",
+            "/desbloquear-conducta-docente",
 
             {
 
@@ -1718,7 +1718,7 @@ btnCrearRespaldo.addEventListener("click", async () => {
     try {
 
         const respuesta = await fetch(
-            "http://localhost:3000/crear-respaldo",
+            "/crear-respaldo",
             {
                 method: "POST"
             }
@@ -1756,7 +1756,7 @@ btnVerRespaldos.onclick = async () => {
     try {
 
         const respuesta = await fetch(
-            "http://localhost:3000/respaldos"
+            "/respaldos"
         );
 
         const respaldos = await respuesta.json();
@@ -1847,7 +1847,7 @@ async function abrirRespaldo(nombreRespaldo) {
     try {
 
         const respuesta = await fetch(
-            `http://localhost:3000/respaldos/${nombreRespaldo}`
+            `/respaldos/${nombreRespaldo}`
         );
 
         const archivos = await respuesta.json();
@@ -1901,7 +1901,7 @@ async function abrirRespaldo(nombreRespaldo) {
                                 <button
                                     class="btnAbrirRespaldo"
                                     style="background:#27ae60;"
-                                    onclick="window.open('http://localhost:3000/descargar-respaldo/${encodeURIComponent(nombreRespaldo)}/${encodeURIComponent(archivo.nombre)}','_blank')">
+                                    onclick="window.open('/descargar-respaldo/${encodeURIComponent(nombreRespaldo)}/${encodeURIComponent(archivo.nombre)}','_blank')">
 
                                     ⬇ Descargar
 
@@ -1938,7 +1938,7 @@ async function verArchivoRespaldo(respaldo, archivo){
 
         const respuesta = await fetch(
 
-            `http://localhost:3000/respaldos/${respaldo}/${archivo}`
+            `/respaldos/${respaldo}/${archivo}`
 
         );
 
@@ -1975,7 +1975,7 @@ document.getElementById("btnDescargarArchivo").onclick = () => {
 
     window.open(
 
-        `http://localhost:3000/descargar-respaldo/${encodeURIComponent(respaldoActual)}/${encodeURIComponent(archivoActual)}`,
+        `/descargar-respaldo/${encodeURIComponent(respaldoActual)}/${encodeURIComponent(archivoActual)}`,
 
         "_blank"
 
@@ -2055,7 +2055,7 @@ async function ejecutarReinicioSistema() {
 
         const respuesta = await fetch(
 
-            "http://localhost:3000/restablecer-sistema",
+            "/restablecer-sistema",
 
             {
                 method: "POST"
@@ -2118,7 +2118,7 @@ async function ocultarForosDocente(usuario_id) {
     
     try {
         const respuesta = await fetch(
-            `http://localhost:3000/ocultar-foros-docente/${usuario_id}`,
+            `/ocultar-foros-docente/${usuario_id}`,
             {
                 method: "PUT"
             }
@@ -2150,7 +2150,7 @@ async function mostrarForosDocente(usuario_id) {
     
     try {
         const respuesta = await fetch(
-            `http://localhost:3000/mostrar-foros-docente/${usuario_id}`,
+            `/mostrar-foros-docente/${usuario_id}`,
             {
                 method: "PUT"
             }
@@ -2184,7 +2184,7 @@ async function ocultarQuizzizDocente(usuario_id) {
     
     try {
         const respuesta = await fetch(
-            `http://localhost:3000/ocultar-quizziz-docente/${usuario_id}`,
+            `/ocultar-quizziz-docente/${usuario_id}`,
             {
                 method: "PUT"
             }
@@ -2216,7 +2216,7 @@ async function mostrarQuizzizDocente(usuario_id) {
     
     try {
         const respuesta = await fetch(
-            `http://localhost:3000/mostrar-quizziz-docente/${usuario_id}`,
+            `/mostrar-quizziz-docente/${usuario_id}`,
             {
                 method: "PUT"
             }
@@ -2245,7 +2245,7 @@ async function ocultarForo(id) {
     }
     
     try {
-        const respuesta = await fetch(`http://localhost:3000/ocultar-foro/${id}`, {
+        const respuesta = await fetch(`/ocultar-foro/${id}`, {
             method: "PUT"
         });
         
@@ -2269,7 +2269,7 @@ async function mostrarForo(id) {
     }
     
     try {
-        const respuesta = await fetch(`http://localhost:3000/mostrar-foro/${id}`, {
+        const respuesta = await fetch(`/mostrar-foro/${id}`, {
             method: "PUT"
         });
         
@@ -2297,7 +2297,7 @@ async function ocultarQuiz(id) {
     }
     
     try {
-        const respuesta = await fetch(`http://localhost:3000/ocultar-quiz/${id}`, {
+        const respuesta = await fetch(`/ocultar-quiz/${id}`, {
             method: "PUT"
         });
         
@@ -2321,7 +2321,7 @@ async function mostrarQuiz(id) {
     }
     
     try {
-        const respuesta = await fetch(`http://localhost:3000/mostrar-quiz/${id}`, {
+        const respuesta = await fetch(`/mostrar-quiz/${id}`, {
             method: "PUT"
         });
         
@@ -2344,7 +2344,7 @@ async function mostrarQuiz(id) {
 // ============================================
 async function cargarForosSoporte() {
     try {
-        const respuesta = await fetch("http://localhost:3000/foros-soporte");
+        const respuesta = await fetch("/foros-soporte");
         const foros = await respuesta.json();
         
         const contenedor = document.getElementById("listaForosSoporte");
@@ -2431,7 +2431,7 @@ async function cargarForosSoporte() {
 // ============================================
 async function cargarQuizzesSoporte() {
     try {
-        const respuesta = await fetch("http://localhost:3000/quizzes-soporte");
+        const respuesta = await fetch("/quizzes-soporte");
         const quizzes = await respuesta.json();
         
         const contenedor = document.getElementById("listaQuizzesSoporte");

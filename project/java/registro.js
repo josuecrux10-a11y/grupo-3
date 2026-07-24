@@ -276,7 +276,7 @@ async function registrar() {
         }
 
         const res = await fetch(
-            "http://localhost:3000/registrar",
+            "/registrar",
             {
                 method: "POST",
                 headers: {
