@@ -60,7 +60,7 @@ function crearConexionMySQL() {
         } : false
     });
 }
-
+let conexionActiva = true; 
 let conexion = crearConexionMySQL();
 
 function reconectarMySQL() {
