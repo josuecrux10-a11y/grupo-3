@@ -10,9 +10,9 @@ app.use(cors());
 app.use("/uploads", express.static("uploads"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname + "/proyect"));
-app.use("/css", express.static(__dirname + "/proyect/css"));
-app.use("/img", express.static(__dirname + "/proyect/img"));
+app.use(express.static(__dirname + "/project"));
+app.use("/css", express.static(__dirname + "/project/css"));
+app.use("/img", express.static(__dirname + "/project/img"));
 
 const storage = multer.diskStorage({
 
