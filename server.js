@@ -146,6 +146,12 @@ function crearCarpetaRespaldo() {
 }
 function respaldarTabla(nombreTabla, rutaRespaldo, callback) {
 
+    if (!conexionActiva) {
+        console.log('⏳ Conexión inactiva, intentando reconectar...');
+        reconectarMySQL();
+        return callback(new Error('Conexión inactiva'));
+    }
+
     conexion.query(
 
         `SELECT * FROM ${nombreTabla}`,
@@ -153,45 +159,29 @@ function respaldarTabla(nombreTabla, rutaRespaldo, callback) {
         (err, datos) => {
 
             if (err) {
-
-                console.error(`❌ Error leyendo ${nombreTabla}:`, err);
-
+                console.error(`❌ Error leyendo ${nombreTabla}:`, err.message);
+                conexionActiva = false;
+                reconectarMySQL();
                 return callback(err);
-
             }
 
             const archivo = path.join(
-
                 rutaRespaldo,
-
                 `${nombreTabla}.json`
-
             );
 
             fs.writeFile(
-
                 archivo,
-
                 JSON.stringify(datos, null, 4),
-
                 "utf8",
-
                 (err) => {
-
                     if (err) {
-
                         console.error(`❌ Error guardando ${nombreTabla}:`, err);
-
                         return callback(err);
-
                     }
-
                     console.log(`✅ ${nombreTabla}.json respaldado.`);
-
                     callback(null);
-
                 }
-
             );
 
         }
@@ -267,7 +257,13 @@ function respaldarTodo(callback){
     siguiente();
 
 }
-function borrarSistema(callback){
+function borrarSistema(callback) {
+
+    if (!conexionActiva) {
+        console.log('⏳ Conexión inactiva, intentando reconectar...');
+        reconectarMySQL();
+        return callback(false);
+    }
 
     console.log("================================");
     console.log("🗑 Iniciando limpieza del sistema...");
@@ -277,14 +273,12 @@ function borrarSistema(callback){
 
         "SET FOREIGN_KEY_CHECKS = 0",
 
-        (err)=>{
+        (err) => {
 
             if (err) {
-
-                console.error("❌ Error desactivando FOREIGN_KEY_CHECKS:", err);
-
+                console.error("❌ Error desactivando FOREIGN_KEY_CHECKS:", err.message);
+                conexionActiva = false;
                 return callback(false);
-
             }
 
             console.log("✅ FOREIGN_KEY_CHECKS desactivado.");
@@ -312,14 +306,11 @@ function borrarSistema(callback){
 
             let indice = 0;
 
-            function truncarSiguiente(){
+            function truncarSiguiente() {
 
-                if(indice >= tablas.length){
-
+                if (indice >= tablas.length) {
                     console.log("✅ Todas las tablas fueron vaciadas.");
-
                     return truncarUsuarios(callback);
-
                 }
 
                 const tabla = tablas[indice];
@@ -330,20 +321,16 @@ function borrarSistema(callback){
 
                     `TRUNCATE TABLE ${tabla}`,
 
-                    (err)=>{
+                    (err) => {
 
                         if (err) {
-
-                            console.error(`❌ Error vaciando ${tabla}:`, err);
-
+                            console.error(`❌ Error vaciando ${tabla}:`, err.message);
+                            conexionActiva = false;
                             return callback(false);
-
                         }
 
                         console.log(`✅ ${tabla} vaciada.`);
-
                         indice++;
-
                         truncarSiguiente();
 
                     }
@@ -359,7 +346,13 @@ function borrarSistema(callback){
     );
 
 }
-function truncarUsuarios(callback){
+function truncarUsuarios(callback) {
+
+    if (!conexionActiva) {
+        console.log('⏳ Conexión inactiva, intentando reconectar...');
+        reconectarMySQL();
+        return callback(false);
+    }
 
     console.log("🗑 Vaciando usuarios...");
 
@@ -367,24 +360,20 @@ function truncarUsuarios(callback){
 
         "TRUNCATE TABLE usuarios",
 
-        (err)=>{
+        (err) => {
 
-            if(err){
-
-                console.error("❌ Error vaciando usuarios:", err);
-
+            if (err) {
+                console.error("❌ Error vaciando usuarios:", err.message);
+                conexionActiva = false;
                 return callback(false);
-
             }
 
             console.log("✅ Usuarios eliminados.");
 
-            crearUsuarioSoporte((ok)=>{
+            crearUsuarioSoporte((ok) => {
 
-                if(!ok){
-
+                if (!ok) {
                     return callback(false);
-
                 }
 
                 console.log("⚙ Reiniciando control académico...");
@@ -403,14 +392,12 @@ function truncarUsuarios(callback){
                     WHERE id = 1
                     `,
 
-                    (err)=>{
+                    (err) => {
 
-                        if(err){
-
-                            console.error("❌ Error reiniciando control académico:", err);
-
+                        if (err) {
+                            console.error("❌ Error reiniciando control académico:", err.message);
+                            conexionActiva = false;
                             return callback(false);
-
                         }
 
                         console.log("✅ Control académico reiniciado.");
@@ -421,14 +408,12 @@ function truncarUsuarios(callback){
 
                             "DELETE FROM configuracion",
 
-                            (err)=>{
+                            (err) => {
 
-                                if(err){
-
-                                    console.error("❌ Error limpiando configuración:", err);
-
+                                if (err) {
+                                    console.error("❌ Error limpiando configuración:", err.message);
+                                    conexionActiva = false;
                                     return callback(false);
-
                                 }
 
                                 console.log("✅ Configuración limpiada.");
@@ -437,18 +422,15 @@ function truncarUsuarios(callback){
 
                                     "SET FOREIGN_KEY_CHECKS = 1",
 
-                                    (err)=>{
+                                    (err) => {
 
-                                        if(err){
-
-                                            console.error("❌ Error activando FOREIGN_KEY_CHECKS:", err);
-
+                                        if (err) {
+                                            console.error("❌ Error activando FOREIGN_KEY_CHECKS:", err.message);
+                                            conexionActiva = false;
                                             return callback(false);
-
                                         }
 
                                         console.log("✅ FOREIGN_KEY_CHECKS activado nuevamente.");
-
                                         return callback(true);
 
                                     }
@@ -470,31 +452,33 @@ function truncarUsuarios(callback){
     );
 
 }
-function crearUsuarioSoporte(callback){
+function crearUsuarioSoporte(callback) {
+
+    if (!conexionActiva) {
+        console.log('⏳ Conexión inactiva, intentando reconectar...');
+        reconectarMySQL();
+        return callback(false);
+    }
 
     conexion.query(
 
         `
         INSERT INTO usuarios
-        (nombre,password,rol)
+        (nombre, password, rol)
         VALUES
-        ('soporte','Soporte2026','soporte')
+        ('soporte', 'Soporte2026', 'soporte')
         `,
 
-        (err)=>{
+        (err) => {
 
-            if(err){
-
-                console.error("❌ Error creando el usuario soporte:", err);
-
+            if (err) {
+                console.error("❌ Error creando el usuario soporte:", err.message);
+                conexionActiva = false;
                 callback(false);
-
                 return;
-
             }
 
             console.log("✅ Usuario soporte creado.");
-
             callback(true);
 
         }
