@@ -10,9 +10,9 @@ app.use(cors());
 app.use("/uploads", express.static("uploads"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname + "/proyect"));
-app.use("/css", express.static(__dirname + "/proyect/css"));
-app.use("/img", express.static(__dirname + "/proyect/img"));
+app.use(express.static(__dirname + "/project"));
+app.use("/css", express.static(__dirname + "/project/css"));
+app.use("/img", express.static(__dirname + "/project/img"));
 
 const storage = multer.diskStorage({
 
@@ -509,7 +509,7 @@ conexion.connect((error) => {
 
 });
 app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/proyect/index.html");
+    res.sendFile(__dirname + "/project/index.html");
 });
 app.get("/test", (req, res) => {
     res.send("✅ El servidor está funcionando correctamente");
@@ -5697,4 +5697,4 @@ app.put("/mostrar-quiz/:id", (req, res) => {
     );
 });
 
-// Este proyecto está conectado a GitHub - 24/07/2026
+// Este projecto está conectado a GitHub - 24/07/2026
