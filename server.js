@@ -451,7 +451,6 @@ function crearUsuarioSoporte(callback){
 
 }
 
-
 conexion.connect((error) => {
 
     if (error) {
@@ -471,167 +470,126 @@ app.get("/", (req, res) => {
     res.sendFile(__dirname + "/project/index.html");
 });
 // Ruta que permite registrar un nuevo usuario
+const CLAVE_RECTOR = "rectorUNI";
 app.post("/registrar", (req, res) => {
-    const { nombre, password, rol, curso, especialidad, materias } = req.body;
+
+    const { 
+        nombre, 
+        password, 
+        rol, 
+        curso, 
+        especialidad, 
+        materias,
+        claveRector
+    } = req.body;
+
+
     console.log("================================");
     console.log("ROL:", rol);
     console.log("MATERIAS:", materias);
     console.log("================================");
-    console.log("📝 Registrando usuario:", { nombre, rol, curso, especialidad });
+
+
+    console.log("📝 Registrando usuario:", {
+        nombre,
+        rol,
+        curso,
+        especialidad
+    });
+
+
+    // ==================================
+    // VALIDAR CLAVE ESPECIAL DEL RECTOR
+    // ==================================
+
+    if (rol === "rector" && claveRector !== CLAVE_RECTOR) {
+
+        return res.status(403).json({
+            mensaje: "❌ Clave especial de Rector incorrecta"
+        });
+
+    }
+
 
     conexion.query(
         "SELECT id FROM usuarios WHERE nombre = ?",
         [nombre],
         (err, resultado) => {
 
+
             if (err) {
+
                 console.error(err);
+
                 return res.status(500).json({
-                    mensaje: "Error al verificar usuario"
+                    mensaje:"Error al verificar usuario"
                 });
+
             }
 
+
             if (resultado.length > 0) {
+
                 return res.status(400).json({
-                    mensaje: "El nombre de usuario ya existe"
+                    mensaje:"El nombre de usuario ya existe"
                 });
+
             }
+
+
 
             const sql = `
                 INSERT INTO usuarios
-                (nombre, password, rol, estado_materias)
-                VALUES (?, ?, ?, ?)
+                (nombre,password,rol,estado_materias)
+                VALUES (?,?,?,?)
             `;
+
 
             const estado =
                 rol === "docente"
                 ? "pendiente"
                 : null;
 
+
+
             conexion.query(
                 sql,
-                [nombre, password, rol, estado],
+                [
+                    nombre,
+                    password,
+                    rol,
+                    estado
+                ],
                 (error, resultado) => {
 
-                    if (error) {
+
+
+                    if(error){
+
                         console.error(error);
+
                         return res.status(500).json({
-                            mensaje: "Error al registrar"
+                            mensaje:"Error al registrar"
                         });
+
                     }
 
-                    const userId = resultado.insertId;
-
-                    // ==========================
-                    // DOCENTE
-                    // ==========================
-
-                    if (rol === "docente") {
-
-                        if (!materias || materias.length === 0) {
-
-                            return res.json({
-                                mensaje:"Docente registrado correctamente"
-                            });
-
-                        }
-
-                        conexion.query(
-                            "SELECT id,nombre FROM materias WHERE nombre IN (?)",
-                            [materias],
-                            (errMaterias, materiasDB) => {
-
-                                if (errMaterias) {
-
-                                    console.error(errMaterias);
-
-                                    return res.status(500).json({
-                                        mensaje:"Error obteniendo materias"
-                                    });
-
-                                }
-
-                                const valores =
-                                    materiasDB.map(m => [
-                                        userId,
-                                        m.id
-                                    ]);
-
-                                conexion.query(
-                                    "INSERT INTO docente_materias (docente_id,materia_id) VALUES ?",
-                                    [valores],
-                                    (errInsert) => {
-
-                                        if (errInsert) {
-
-                                            console.error(errInsert);
-
-                                            return res.status(500).json({
-                                                mensaje:"Error guardando materias"
-                                            });
-
-                                        }
-
-                                        res.json({
-                                            mensaje:"Docente registrado correctamente"
-                                        });
-
-                                    }
-                                );
-
-                            }
-                        );
-
-                        return;
-                    }
-
-                    // ==========================
-                    // ALUMNO
-                    // ==========================
-
-                    if (rol === "alumno") {
-
-                        conexion.query(
-                            `INSERT INTO perfiles
-                            (usuario_id,nombre,curso,especialidad,estado_asignacion)
-                            VALUES (?,?,?,?, 'pendiente')`,
-                            [
-                                userId,
-                                nombre,
-                                curso,
-                                especialidad
-                            ],
-                            (errPerfil)=>{
-
-                                if(errPerfil){
-
-                                    console.error(errPerfil);
-
-                                    return res.status(500).json({
-                                        mensaje:"Error creando perfil"
-                                    });
-
-                                }
-
-                                res.json({
-                                    mensaje:"Alumno registrado correctamente"
-                                });
-
-                            }
-                        );
-
-                        return;
-                    }
 
                     res.json({
+
                         mensaje:`${rol} registrado correctamente`
+
                     });
+
 
                 }
             );
 
+
         }
     );
+
+
 });
 
 app.post("/verificar-usuario", (req, res) => {
@@ -3176,7 +3134,6 @@ app.get("/resultados-quiz-docente/:docenteId", (req, res) => {
 
 });
 
-
 // ============================================
 // 🔐 VERIFICAR SI ES CONTRASEÑA TEMPORAL
 // ============================================
@@ -3289,9 +3246,7 @@ app.put("/cambiar-contrasena", (req, res) => {
     );
 });
 
-// ============================================
 // 🔑 ENDPOINT PARA RESTABLECER CONTRASEÑA (Soporte)
-// ============================================
 app.put('/restablecer-contrasena/:id', (req, res) => {
     console.log("📩 ===== SOLICITUD DE RESTABLECER CONTRASEÑA =====");
     console.log("📩 ID recibido:", req.params.id);

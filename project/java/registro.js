@@ -279,7 +279,8 @@ async function registrar() {
                     rol: rol,
                     curso: cursoAlumno,
                     especialidad: especialidadAlumno,
-                    materias: materiasSeleccionadas
+                    materias: materiasSeleccionadas,
+                    claveRector: claveRector
                 })
             }
         );
