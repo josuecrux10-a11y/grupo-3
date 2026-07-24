@@ -40,34 +40,47 @@ const upload = multer({
 // CONEXIÓN A MYSQL CON RECONEXIÓN AUTOMÁTICA
 // ============================================
 
+// ============================================
+// CONEXIÓN A MYSQL CON POOL (PARA RAILWAY)
+// ============================================
+
+let pool;
+let conexionActiva = true;
+
 function crearConexionMySQL() {
     // Si existe DATABASE_URL, usarla directamente
     if (process.env.DATABASE_URL) {
         console.log('📡 Usando DATABASE_URL para conectar a MySQL');
-        return mysql.createConnection(process.env.DATABASE_URL);
+        pool = mysql.createPool(process.env.DATABASE_URL);
+        return pool;
     }
     
     // Sino, usar variables individuales
-    return mysql.createConnection({
+    pool = mysql.createPool({
         host: process.env.DB_HOST || "localhost",
         user: process.env.DB_USER || "root",
         password: process.env.DB_PASSWORD || "123456",
         database: process.env.DB_NAME || "portal_estudiantil",
         port: process.env.DB_PORT || 3306,
+        connectionLimit: 10,
         connectTimeout: 20000,
         ssl: process.env.DB_SSL === 'true' ? {
             rejectUnauthorized: false
         } : false
     });
+    
+    return pool;
 }
-let conexionActiva = true; 
+
 let conexion = crearConexionMySQL();
 
 function reconectarMySQL() {
     console.log('🔄 Intentando reconectar a MySQL...');
-    conexion = crearConexionMySQL();
+    pool = crearConexionMySQL();
+    conexion = pool;
     
-    conexion.connect((err) => {
+    // Verificar conexión
+    pool.getConnection((err, connection) => {
         if (err) {
             console.error('❌ Error reconectando:', err.message);
             conexionActiva = false;
@@ -75,11 +88,12 @@ function reconectarMySQL() {
         } else {
             console.log('✅ Reconectado a MySQL');
             conexionActiva = true;
+            connection.release();
         }
     });
 }
 
-conexion.on('error', (err) => {
+pool.on('error', (err) => {
     console.error('❌ Error en MySQL:', err.message);
     conexionActiva = false;
     if (err.code === 'PROTOCOL_CONNECTION_LOST' || 
@@ -90,12 +104,14 @@ conexion.on('error', (err) => {
 });
 
 setInterval(() => {
-    if (conexionActiva) {
-        conexion.query('SELECT 1', (err) => {
+    if (conexionActiva && pool) {
+        pool.getConnection((err, connection) => {
             if (err) {
                 console.error('❌ Ping falló:', err.message);
                 conexionActiva = false;
                 reconectarMySQL();
+            } else {
+                connection.release();
             }
         });
     }
@@ -157,7 +173,7 @@ function respaldarTabla(nombreTabla, rutaRespaldo, callback) {
         return callback(new Error('Conexión inactiva'));
     }
 
-    conexion.query(
+    pool.query(
 
         `SELECT * FROM ${nombreTabla}`,
 
@@ -274,7 +290,7 @@ function borrarSistema(callback) {
     console.log("🗑 Iniciando limpieza del sistema...");
     console.log("================================");
 
-    conexion.query(
+    pool.query(
 
         "SET FOREIGN_KEY_CHECKS = 0",
 
@@ -322,7 +338,7 @@ function borrarSistema(callback) {
 
                 console.log("🗑 Vaciando:", tabla);
 
-                conexion.query(
+                pool.query(
 
                     `TRUNCATE TABLE ${tabla}`,
 
@@ -361,7 +377,7 @@ function truncarUsuarios(callback) {
 
     console.log("🗑 Vaciando usuarios...");
 
-    conexion.query(
+    pool.query(
 
         "TRUNCATE TABLE usuarios",
 
@@ -383,7 +399,7 @@ function truncarUsuarios(callback) {
 
                 console.log("⚙ Reiniciando control académico...");
 
-                conexion.query(
+                pool.query(
 
                     `
                     UPDATE control_academico
@@ -409,7 +425,7 @@ function truncarUsuarios(callback) {
 
                         console.log("🗑 Limpiando configuración...");
 
-                        conexion.query(
+                        pool.query(
 
                             "DELETE FROM configuracion",
 
@@ -423,7 +439,7 @@ function truncarUsuarios(callback) {
 
                                 console.log("✅ Configuración limpiada.");
 
-                                conexion.query(
+                                pool.query(
 
                                     "SET FOREIGN_KEY_CHECKS = 1",
 
@@ -465,7 +481,7 @@ function crearUsuarioSoporte(callback) {
         return callback(false);
     }
 
-    conexion.query(
+    pool.query(
 
         `
         INSERT INTO usuarios
@@ -542,7 +558,7 @@ app.post("/registrar", (req, res) => {
     console.log("================================");
     console.log("📝 Registrando usuario:", { nombre, rol, curso, especialidad });
 
-    conexion.query(
+    pool.query(
         "SELECT id FROM usuarios WHERE nombre = ?",
         [nombre],
         (err, resultado) => {
@@ -571,7 +587,7 @@ app.post("/registrar", (req, res) => {
                 ? "pendiente"
                 : null;
 
-            conexion.query(
+            pool.query(
                 sql,
                 [nombre, password, rol, estado],
                 (error, resultado) => {
@@ -599,7 +615,7 @@ app.post("/registrar", (req, res) => {
 
                         }
 
-                        conexion.query(
+                        pool.query(
                             "SELECT id,nombre FROM materias WHERE nombre IN (?)",
                             [materias],
                             (errMaterias, materiasDB) => {
@@ -620,7 +636,7 @@ app.post("/registrar", (req, res) => {
                                         m.id
                                     ]);
 
-                                conexion.query(
+                                pool.query(
                                     "INSERT INTO docente_materias (docente_id,materia_id) VALUES ?",
                                     [valores],
                                     (errInsert) => {
@@ -654,7 +670,7 @@ app.post("/registrar", (req, res) => {
 
                     if (rol === "alumno") {
 
-                        conexion.query(
+                        pool.query(
                             `INSERT INTO perfiles
                             (usuario_id,nombre,curso,especialidad,estado_asignacion)
                             VALUES (?,?,?,?, 'pendiente')`,
@@ -701,7 +717,7 @@ app.post("/verificar-usuario", (req, res) => {
 
     const { nombre } = req.body;
 
-    conexion.query(
+    pool.query(
         "SELECT * FROM usuarios WHERE nombre = ?",
         [nombre],
         (error, resultados) => {
@@ -725,7 +741,7 @@ app.post("/login", (req, res) => {
 
     const { nombre, password } = req.body;
 
-    conexion.query(
+    pool.query(
 
         "SELECT * FROM usuarios WHERE nombre = ? AND password = ?",
 
@@ -792,7 +808,7 @@ app.post("/guardar-perfil", (req, res) => {
         foto
     } = req.body;
 
-    conexion.query(
+    pool.query(
 
         "SELECT id FROM perfiles WHERE usuario_id=?",
 
@@ -814,7 +830,7 @@ app.post("/guardar-perfil", (req, res) => {
 
                 // YA EXISTE → ACTUALIZAR
 
-                conexion.query(
+                pool.query(
 
                     `
                     UPDATE perfiles
@@ -879,7 +895,7 @@ app.post("/guardar-perfil", (req, res) => {
 
                 // NO EXISTE → INSERTAR
 
-                conexion.query(
+                pool.query(
 
                     `
                     INSERT INTO perfiles
@@ -967,7 +983,7 @@ app.post("/guardar-perfil-docente", (req, res) => {
         foto
     } = req.body;
 
-    conexion.query(
+    pool.query(
 
         "SELECT id FROM perfil_docente WHERE usuario_id = ? LIMIT 1",
 
@@ -989,7 +1005,7 @@ app.post("/guardar-perfil-docente", (req, res) => {
 
             if (resultado.length > 0) {
 
-                conexion.query(
+                pool.query(
 
                     `
                     UPDATE perfil_docente
@@ -1046,7 +1062,7 @@ app.post("/guardar-perfil-docente", (req, res) => {
 
             else {
 
-                conexion.query(
+                pool.query(
 
                     `
                     INSERT INTO perfil_docente
@@ -1108,7 +1124,7 @@ app.post("/guardar-perfil-docente", (req, res) => {
 
 });
 app.get("/usuarios", (req, res) => {
-    conexion.query("SELECT * FROM usuarios", (error, results) => {
+    pool.query("SELECT * FROM usuarios", (error, results) => {
 
         if (error) {
             console.log(error);
@@ -1128,7 +1144,7 @@ app.post("/asignar-usuario", (req, res) => {
         WHERE nombre = ?
     `;
 
-    conexion.query(sql, [paralelo, nombre], (error) => {
+    pool.query(sql, [paralelo, nombre], (error) => {
 
         if (error) {
             console.log(error);
@@ -1157,7 +1173,7 @@ app.get("/paralelos", (req, res) => {
             paralelo;
     `;
 
-    conexion.query(sql, (error, results) => {
+    pool.query(sql, (error, results) => {
         if (error) {
             console.log("❌ Error en /paralelos:", error);
             return res.status(500).json([]);
@@ -1181,7 +1197,7 @@ app.get("/alumnos-carpetas", (req, res) => {
         WHERE estado_asignacion = 'asignado'
     `;
 
-    conexion.query(sql, (err, resultados) => {
+    pool.query(sql, (err, resultados) => {
 
         if (err) {
             console.error(err);
@@ -1199,7 +1215,7 @@ app.post("/eliminar-usuario", (req, res) => {
     const { id } = req.body;
 
     // Primero eliminar perfil
-    conexion.query(
+    pool.query(
         "DELETE FROM perfiles WHERE usuario_id = ?",
         [id],
         (errorPerfil) => {
@@ -1213,7 +1229,7 @@ app.post("/eliminar-usuario", (req, res) => {
             }
 
             // Luego eliminar usuario
-            conexion.query(
+            pool.query(
                 "DELETE FROM usuarios WHERE id = ?",
                 [id],
                 (errorUsuario) => {
@@ -1252,7 +1268,7 @@ app.get("/alumnos-pendientes", (req, res) => {
         AND u.rol = 'alumno'
     `;
 
-    conexion.query(sql, (error, results) => {
+    pool.query(sql, (error, results) => {
         if (error) {
             console.log("❌ Error en /alumnos-pendientes:", error);
             return res.status(500).json([]);
@@ -1278,7 +1294,7 @@ app.post("/asignar-alumno", (req, res) => {
         WHERE usuario_id = ?
     `;
 
-    conexion.query(
+    pool.query(
         sql,
         [paralelo, usuario_id],
         (error) => {
@@ -1323,7 +1339,7 @@ app.post("/guardar-conducta", (req, res) => {
     console.log("Alumno:", alumno_usuario);
     console.log("Materia:", materia);
 
-    conexion.query(
+    pool.query(
 
         `
         SELECT conducta_bloqueada
@@ -1359,7 +1375,7 @@ app.post("/guardar-conducta", (req, res) => {
                     accion: "desbloquear_conducta"
                 });
 
-                conexion.query(
+                pool.query(
 
                     `
                     SELECT *
@@ -1428,7 +1444,7 @@ app.post("/guardar-conducta", (req, res) => {
 
     function guardarConducta(){
 
-        conexion.query(
+        pool.query(
 
             `
             SELECT id
@@ -1463,7 +1479,7 @@ app.post("/guardar-conducta", (req, res) => {
 
                 if(resultados.length > 0){
 
-                    conexion.query(
+                    pool.query(
 
                         `
                         UPDATE conductas
@@ -1521,7 +1537,7 @@ app.post("/guardar-conducta", (req, res) => {
 
                 }else{
 
-                    conexion.query(
+                    pool.query(
 
                         `
                         INSERT INTO conductas
@@ -1593,7 +1609,7 @@ app.get("/conductas/:alumno", (req, res) => {
 
     const alumno = req.params.alumno;
 
-    conexion.query(
+    pool.query(
         "SELECT * FROM conductas WHERE alumno_usuario = ? ORDER BY id DESC",
         [alumno],
         (err, resultados) => {
@@ -1628,7 +1644,7 @@ app.post("/guardar-nota", (req, res) => {
     console.log("Materia:", materia_id);
 
     // Verificar si las notas están bloqueadas
-    conexion.query(
+    pool.query(
 
         `
         SELECT notas_bloqueadas
@@ -1659,7 +1675,7 @@ app.post("/guardar-nota", (req, res) => {
 
                 console.log("Las notas están bloqueadas. Verificando autorización...");
 
-                conexion.query(
+                pool.query(
 
                     `
                     SELECT *
@@ -1735,7 +1751,7 @@ app.post("/guardar-nota", (req, res) => {
 
         console.log("Entrando a guardarNota()");
 
-        conexion.query(
+        pool.query(
 
             `
             SELECT id
@@ -1775,7 +1791,7 @@ app.post("/guardar-nota", (req, res) => {
 
                     console.log("Actualizando nota existente ID:", resultado[0].id);
 
-                    conexion.query(
+                    pool.query(
 
                         `
                         UPDATE notas
@@ -1830,7 +1846,7 @@ app.post("/guardar-nota", (req, res) => {
 
                     console.log("Insertando nueva nota.");
 
-                    conexion.query(
+                    pool.query(
 
                         `
                         INSERT INTO notas
@@ -1905,7 +1921,7 @@ app.post("/crear-foro", (req, res) => {
         timestamp
     } = req.body;
 
-    conexion.query(
+    pool.query(
         `
         INSERT INTO foro
         (
@@ -1937,7 +1953,7 @@ app.post("/crear-foro", (req, res) => {
 });
 
 app.get("/foros", (req, res) => {
-    conexion.query(
+    pool.query(
         "SELECT * FROM foro WHERE visible = 1 ORDER BY id DESC",
         (err, resultados) => {
             if (err) {
@@ -1958,7 +1974,7 @@ app.post("/responder-foro", (req, res) => {
         fecha
     } = req.body;
 
-    conexion.query(
+    pool.query(
         `
         SELECT *
         FROM respuestas_foro
@@ -1974,7 +1990,7 @@ app.post("/responder-foro", (req, res) => {
 
             if (resultados.length > 0) {
 
-                conexion.query(
+                pool.query(
                     `
                     UPDATE respuestas_foro
                     SET texto = ?, fecha = ?
@@ -2001,7 +2017,7 @@ app.post("/responder-foro", (req, res) => {
 
             } else {
 
-                conexion.query(
+                pool.query(
                     `
                     INSERT INTO respuestas_foro
                     (
@@ -2035,7 +2051,7 @@ app.post("/responder-foro", (req, res) => {
 });
 app.get("/respuestas-foro/:id", (req, res) => {
 
-    conexion.query(
+    pool.query(
         `
         SELECT *
         FROM respuestas_foro
@@ -2056,12 +2072,12 @@ app.post("/eliminar-foro", (req, res) => {
 
     const { id } = req.body;
 
-    conexion.query(
+    pool.query(
         "DELETE FROM respuestas_foro WHERE foro_id = ?",
         [id],
         () => {
 
-            conexion.query(
+            pool.query(
                 "DELETE FROM foro WHERE id = ?",
                 [id],
                 (err) => {
@@ -2080,7 +2096,7 @@ app.post("/eliminar-foro", (req, res) => {
 });
 app.get("/perfil/:usuarioId", (req, res) => {
 
-    conexion.query(
+    pool.query(
         `
         SELECT *
         FROM perfiles
@@ -2105,7 +2121,7 @@ app.get("/perfil/:usuarioId", (req, res) => {
 });
 app.get("/perfiles", (req,res)=>{
 
-    conexion.query(
+    pool.query(
 
         `
         SELECT *
@@ -2141,7 +2157,7 @@ app.post("/guardar-asistencia", (req, res) => {
 
     } = req.body;
 
-    conexion.query(
+    pool.query(
 
         `
         INSERT INTO asistencias
@@ -2200,7 +2216,7 @@ app.get("/alumnos-asistencia", (req,res)=>{
         especialidad
     } = req.query;
 
-    conexion.query(
+    pool.query(
         `
         SELECT
             usuario_id AS id,
@@ -2241,7 +2257,7 @@ app.get("/alumnos-asistencia", (req,res)=>{
 });
 app.get("/asistencias/:alumnoId", (req,res)=>{
 
-    conexion.query(
+    pool.query(
         `
         SELECT *
         FROM asistencias
@@ -2262,7 +2278,7 @@ app.get("/asistencias/:alumnoId", (req,res)=>{
 });
 app.get("/cursos-asistencia", (req,res)=>{
 
-    conexion.query(
+    pool.query(
         `
        SELECT
             curso,
@@ -2296,7 +2312,7 @@ app.get("/asistencias-paralelo", (req,res)=>{
         especialidad
     } = req.query;
 
-    conexion.query(
+    pool.query(
         `
         SELECT
             a.*,
@@ -2355,13 +2371,13 @@ app.post("/asignar-materia", (req, res) => {
     // Intentamos actualizar el estado del docente o insertar la asignación
     const sqlInsert = "INSERT INTO docentes_asignados (docente_id, materia_id) VALUES (?, ?)";
 
-    dbConexion.query(sqlInsert, [docenteId, materiaId], (err) => {
+    dbpool.query(sqlInsert, [docenteId, materiaId], (err) => {
         if (err) {
             console.error("❌ Detalle del error MySQL:", err.sqlMessage || err.message);
             
             // Si la columna falla, probamos con la estructura alternativa habitual
             const sqlAlt = "INSERT INTO docente_materias (docente_id, materia_id) VALUES (?, ?)";
-            dbConexion.query(sqlAlt, [docenteId, materiaId], (errAlt) => {
+            dbpool.query(sqlAlt, [docenteId, materiaId], (errAlt) => {
                 if (errAlt) {
                     console.error("❌ Falló también alternativa:", errAlt.sqlMessage || errAlt.message);
                     return res.status(400).json({ ok: false, mensaje: err.sqlMessage || err.message });
@@ -2396,7 +2412,7 @@ app.post("/editar-materia", (req, res) => {
         return res.status(500).json({ success: false, message: "Sin conexión a BD" });
     }
 
-    dbConexion.query(sql, [materia_id, id], (err, result) => {
+    dbpool.query(sql, [materia_id, id], (err, result) => {
         if (err) {
             console.error("❌ Error SQL al editar materia:", err.message);
             return res.status(500).json({ success: false, error: err.message });
@@ -2408,7 +2424,7 @@ app.post("/editar-materia", (req, res) => {
 });
 app.get("/docentes", (req, res) => {
 
-    conexion.query(
+    pool.query(
         `
         SELECT *
         FROM usuarios
@@ -2427,7 +2443,7 @@ app.get("/docentes", (req, res) => {
 });
 app.get("/configuracion", (req,res)=>{
 
-    conexion.query(
+    pool.query(
         "SELECT * FROM configuracion LIMIT 1",
         (err,resultados)=>{
 
@@ -2444,7 +2460,7 @@ app.post("/configuracion",(req,res)=>{
 
     const { fechaInicio } = req.body;
 
-    conexion.query(
+    pool.query(
         `
         INSERT INTO configuracion(fechaInicio)
         VALUES(?)
@@ -2465,7 +2481,7 @@ app.post("/configuracion",(req,res)=>{
 });
 app.get("/notas/:id", (req,res)=>{
 
-    conexion.query(
+    pool.query(
         `
         SELECT *
         FROM notas
@@ -2485,7 +2501,7 @@ app.get("/notas/:id", (req,res)=>{
 });
 app.get("/fecha-inicio/:docenteId", (req,res)=>{
 
-    conexion.query(
+    pool.query(
         `
         SELECT fecha_inicio
         FROM fecha_inicio_docente
@@ -2518,7 +2534,7 @@ app.get("/fecha-inicio/:docenteId", (req,res)=>{
 app.post("/restablecer-fecha", (req, res) => {
 
     const { autorizacionId } = req.body;
-    conexion.query(
+    pool.query(
         "DELETE FROM asistencias",
         (err) => {
 
@@ -2533,7 +2549,7 @@ app.post("/restablecer-fecha", (req, res) => {
 
             }
 
-            conexion.query(
+            pool.query(
                 "DELETE FROM fecha_inicio_docente",
                 (err) => {
 
@@ -2548,7 +2564,7 @@ app.post("/restablecer-fecha", (req, res) => {
 
                     }
 
-                    conexion.query(
+                    pool.query(
     `
                         UPDATE autorizaciones
                         SET estado='ejecutado'
@@ -2596,7 +2612,7 @@ app.post("/guardar-fecha-inicio", (req, res) => {
 
     } = req.body;
 
-    conexion.query(
+    pool.query(
 
         `
         INSERT INTO fecha_inicio_docente
@@ -2677,13 +2693,13 @@ app.get("/solicitudes-docentes", (req, res) => {
         return res.status(200).json([]); // Evitamos el error 500 devolviendo array vacío
     }
 
-    dbConexion.query(sql, (err, results) => {
+    dbpool.query(sql, (err, results) => {
         if (err) {
             console.error("❌ Error SQL en solicitudes-docentes:", err.message);
             
             // RESPALDO DE SEGURIDAD: Si la consulta con JOINs falla, probamos traer directo de usuarios
             const sqlFallback = "SELECT id, nombre FROM usuarios WHERE rol = 'docente'";
-            dbConexion.query(sqlFallback, (err2, fallbackResults) => {
+            dbpool.query(sqlFallback, (err2, fallbackResults) => {
                 if (err2) return res.status(200).json([]);
                 return res.json(fallbackResults || []);
             });
@@ -2712,7 +2728,7 @@ app.get("/docentes-asignados", (req, res) => {
         ORDER BY u.nombre
     `;
 
-    conexion.query(sql, (err, resultados) => {
+    pool.query(sql, (err, resultados) => {
 
         if(err){
             console.error(err);
@@ -2731,7 +2747,7 @@ app.get("/datos-docente/:id", (req,res)=>{
 
     const id = req.params.id;
 
-    conexion.query(
+    pool.query(
         `
         SELECT
             u.nombre,
@@ -2781,7 +2797,7 @@ app.get("/perfil-docente/:id", (req,res)=>{
 
     const id = req.params.id;
 
-    conexion.query(
+    pool.query(
         `
         SELECT
             u.nombre,
@@ -2841,7 +2857,7 @@ app.get("/perfil-docente/:id", (req,res)=>{
 app.get("/materia-docente/:id", (req, res) => {
     const id = req.params.id;
 
-    conexion.query(
+    pool.query(
         `
         SELECT 
             dm.materia_id,
@@ -2882,7 +2898,7 @@ app.post("/eliminar-docente", (req, res) => {
     const { id } = req.body;
 
     // Paso 1: Eliminar de la tabla horarios para no romper la Clave Foránea (FK)
-    conexion.query(
+    pool.query(
         "DELETE FROM horarios WHERE id_docente = ?",
         [id],
         (err) => {
@@ -2892,7 +2908,7 @@ app.post("/eliminar-docente", (req, res) => {
             }
 
             // Paso 2: Eliminar las relaciones de materias
-            conexion.query(
+            pool.query(
                 "DELETE FROM docente_materias WHERE docente_id = ?",
                 [id],
                 (err2) => {
@@ -2902,7 +2918,7 @@ app.post("/eliminar-docente", (req, res) => {
                     }
 
                     // Paso 3: Borrar al usuario de la tabla usuarios
-                    conexion.query(
+                    pool.query(
                         "DELETE FROM usuarios WHERE id = ?",
                         [id],
                         (err3) => {
@@ -2928,7 +2944,7 @@ app.post("/quizzes", (req, res) => {
         preguntas
     } = req.body;
 
-    conexion.query(
+    pool.query(
         `INSERT INTO quizzes
         (titulo,materia_id,docente_id)
         VALUES (?,?,?)`,
@@ -2952,7 +2968,7 @@ app.post("/quizzes", (req, res) => {
                 p.respuesta_correcta
             ]);
 
-            conexion.query(
+            pool.query(
                 `INSERT INTO preguntas_quiz
                 (quiz_id,pregunta,
                 opcion_a,opcion_b,
@@ -2977,7 +2993,7 @@ app.post("/quizzes", (req, res) => {
 });
 
 app.get("/quizzes", (req, res) => {
-    conexion.query(
+    pool.query(
         `
         SELECT
             q.id,
@@ -2999,7 +3015,7 @@ app.get("/quizzes", (req, res) => {
 
 app.get("/quizzes/:id", (req,res)=>{
     const id = req.params.id;
-    conexion.query(
+    pool.query(
         "SELECT * FROM quizzes WHERE id = ? AND visible = 1",
         [id],
         (err,quiz)=>{
@@ -3011,7 +3027,7 @@ app.get("/quizzes/:id", (req,res)=>{
                     mensaje: "Quiz no encontrado o no disponible"
                 });
             }
-            conexion.query(
+            pool.query(
                 "SELECT * FROM preguntas_quiz WHERE quiz_id = ?",
                 [id],
                 (err2,preguntas)=>{
@@ -3039,7 +3055,7 @@ app.post("/resultados_quiz",(req,res)=>{
         puntaje
     } = req.body;
 
-    conexion.query(
+    pool.query(
         `
         INSERT INTO resultados_quiz
         (
@@ -3074,7 +3090,7 @@ app.get("/quiz-respondido/:quizId/:estudianteId", (req,res)=>{
 
     const { quizId, estudianteId } = req.params;
 
-    conexion.query(
+    pool.query(
         `
         SELECT id
         FROM resultados_quiz
@@ -3110,7 +3126,7 @@ app.get("/materias-docente/:id", (req, res) => {
         ORDER BY m.nombre
     `;
 
-    conexion.query(sql, [docenteId], (err, resultados) => {
+    pool.query(sql, [docenteId], (err, resultados) => {
 
         if (err) {
 
@@ -3138,7 +3154,7 @@ app.get("/materias-docente/:id", (req, res) => {
 
 app.get("/debug-resultados", (req, res) => {
 
-    conexion.query(
+    pool.query(
         `
         SELECT 
             rq.*,
@@ -3169,7 +3185,7 @@ app.get("/debug-quizzes/:docenteId", (req, res) => {
 
     const docenteId = req.params.docenteId;
 
-    conexion.query(
+    pool.query(
         `
         SELECT 
             q.*,
@@ -3225,7 +3241,7 @@ app.get("/resultados-quiz-docente/:docenteId", (req, res) => {
         ORDER BY rq.fecha_registro DESC, rq.id DESC
     `;
 
-    conexion.query(sql, [docenteId], (err, resultados) => {
+    pool.query(sql, [docenteId], (err, resultados) => {
         if (err) {
             console.error("❌ Error en resultados-quiz-docente:", err);
             return res.status(500).json({ 
@@ -3246,7 +3262,7 @@ app.get("/resultados-quiz-docente/:docenteId", (req, res) => {
 app.post("/verificar-contrasena-temporal", (req, res) => {
     const { usuario_id } = req.body;
 
-    conexion.query(
+    pool.query(
         'SELECT password FROM usuarios WHERE id = ?',
         [usuario_id],
         (error, resultados) => {
@@ -3301,7 +3317,7 @@ app.put("/cambiar-contrasena", (req, res) => {
     }
 
     // Obtener el nombre del usuario para mostrar en el mensaje
-    conexion.query(
+    pool.query(
         'SELECT nombre FROM usuarios WHERE id = ?',
         [usuario_id],
         (error, usuario) => {
@@ -3321,7 +3337,7 @@ app.put("/cambiar-contrasena", (req, res) => {
             }
 
             // Actualizar la contraseña
-            conexion.query(
+            pool.query(
                 'UPDATE usuarios SET password = ? WHERE id = ?',
                 [nueva_contrasena, usuario_id],
                 (err, resultado) => {
@@ -3376,7 +3392,7 @@ app.put('/restablecer-contrasena/:id', (req, res) => {
         });
     }
 
-    conexion.query(
+    pool.query(
         'SELECT id, nombre FROM usuarios WHERE id = ?',
         [id],
         (error, usuario) => {
@@ -3397,7 +3413,7 @@ app.put('/restablecer-contrasena/:id', (req, res) => {
 
             console.log(`👤 Usuario encontrado: ${usuario[0].nombre}`);
 
-            conexion.query(
+            pool.query(
                 'UPDATE usuarios SET password = ? WHERE id = ?',
                 [nueva_contrasena, id],
                 (err, resultado) => {
@@ -3687,7 +3703,7 @@ const PORT = process.env.PORT || 3000;
             return;
         }
 
-        conexion.query(
+        pool.query(
 
             `
             SELECT *
@@ -3724,7 +3740,7 @@ const PORT = process.env.PORT || 3000;
 
                 ) {
 
-                    conexion.query(
+                    pool.query(
 
                         `
                         UPDATE control_academico
@@ -3764,7 +3780,7 @@ const PORT = process.env.PORT || 3000;
 
                 ) {
 
-                    conexion.query(
+                    pool.query(
 
                         `
                         UPDATE control_academico
@@ -3806,7 +3822,7 @@ app.post("/solicitar-restablecer-asistencia", (req, res) => {
     const { rector_id } = req.body;
 
     // Verificar si ya existe una solicitud pendiente
-    conexion.query(
+    pool.query(
         `
         SELECT id
         FROM autorizaciones
@@ -3838,7 +3854,7 @@ app.post("/solicitar-restablecer-asistencia", (req, res) => {
             }
 
             // Crear la nueva solicitud
-            conexion.query(
+            pool.query(
                 `
                 INSERT INTO autorizaciones
                 (
@@ -3880,7 +3896,7 @@ app.post("/solicitar-restablecer-asistencia", (req, res) => {
 });
 app.get("/autorizaciones-pendientes", (req, res) => {
 
-    conexion.query(
+    pool.query(
         `
         SELECT
             a.*,
@@ -3914,7 +3930,7 @@ app.post("/aprobar-autorizacion", (req, res) => {
         soporte_id
     } = req.body;
 
-    conexion.query(
+    pool.query(
         `
         UPDATE autorizaciones
         SET
@@ -3948,7 +3964,7 @@ app.post("/aprobar-autorizacion", (req, res) => {
 });
 app.get("/autorizacion-restablecimiento/:rectorId", (req, res) => {
 
-    conexion.query(
+    pool.query(
         `
         SELECT id
         FROM autorizaciones
@@ -3999,7 +4015,7 @@ app.post("/crear-ticket", (req, res) => {
 
     } = req.body;
 
-    conexion.query(
+    pool.query(
         `
         INSERT INTO tickets_soporte
         (
@@ -4045,7 +4061,7 @@ app.post("/crear-ticket", (req, res) => {
 });
 app.get("/tickets-soporte", (req, res) => {
 
-    conexion.query(
+    pool.query(
         `
         SELECT *
         FROM tickets_soporte
@@ -4075,7 +4091,7 @@ app.post("/responder-ticket", (req, res) => {
         respuesta
     } = req.body;
 
-    conexion.query(
+    pool.query(
 
         `
         UPDATE tickets_soporte
@@ -4115,7 +4131,7 @@ app.get("/mis-tickets/:usuarioId", (req, res) => {
 
     const usuarioId = req.params.usuarioId;
 
-    conexion.query(
+    pool.query(
 
         `
         SELECT *
@@ -4147,7 +4163,7 @@ app.get("/notificaciones-soporte/:id", (req, res) => {
 
     const id = req.params.id;
 
-    conexion.query(
+    pool.query(
 
         `
         SELECT COUNT(*) AS total
@@ -4180,7 +4196,7 @@ app.get("/notificaciones-soporte/:id", (req, res) => {
 });
 app.put("/tickets-soporte/visto/:id", (req,res)=>{
 
-    conexion.query(
+    pool.query(
 
         `
         UPDATE tickets_soporte
@@ -4209,7 +4225,7 @@ app.put("/tickets-soporte/visto/:id", (req,res)=>{
 });
 app.put("/ticket-visto/:id",(req,res)=>{
 
-    conexion.query(
+    pool.query(
 
         `
         UPDATE tickets_soporte
@@ -4241,7 +4257,7 @@ app.put("/ticket-visto/:id",(req,res)=>{
 });
 app.get("/tickets-no-vistos/:usuario",(req,res)=>{
 
-    conexion.query(
+    pool.query(
 
         `
         SELECT COUNT(*) AS total
@@ -4273,7 +4289,7 @@ app.get("/tickets-no-vistos/:usuario",(req,res)=>{
 });
 app.get("/usuarios-soporte",(req,res)=>{
 
-    conexion.query(
+    pool.query(
         `
         SELECT
             id,
@@ -4301,7 +4317,7 @@ app.get("/usuarios-soporte",(req,res)=>{
 });
 app.get("/usuario-soporte/:id",(req,res)=>{
 
-    conexion.query(
+    pool.query(
         `
         SELECT
             id,
@@ -4330,7 +4346,7 @@ app.get("/usuario-soporte/:id",(req,res)=>{
 });
 app.put("/habilitar-edicion-perfil/:usuario_id", (req, res) => {
 
-    conexion.query(
+    pool.query(
         `
         UPDATE perfiles
         SET puede_editar = 1
@@ -4390,7 +4406,7 @@ app.put('/restablecer-contrasena/:id', (req, res) => {
     }
 
     // Primero verificar si el usuario existe
-    conexion.query(
+    pool.query(
         'SELECT id, nombre FROM usuarios WHERE id = ?',
         [id],
         (error, usuario) => {
@@ -4413,7 +4429,7 @@ app.put('/restablecer-contrasena/:id', (req, res) => {
             console.log(`👤 Usuario encontrado: ${usuario[0].nombre}`);
 
             // Actualizar la contraseña
-            conexion.query(
+            pool.query(
                 'UPDATE usuarios SET password = ? WHERE id = ?',
                 [nueva_contrasena, id],
                 (err, resultado) => {
@@ -4456,7 +4472,7 @@ app.put("/actualizar-usuario-soporte/:id", (req, res) => {
     const { id } = req.params;
     const { nombre, rol } = req.body;
 
-    conexion.query(
+    pool.query(
         "UPDATE usuarios SET nombre = ?, rol = ? WHERE id = ?",
         [nombre, rol, id],
         (error, resultado) => {
@@ -4492,7 +4508,7 @@ app.put("/desbloquear-perfil-docente/:id", (req, res) => {
         WHERE usuario_id = ?
     `;
 
-    conexion.query(sql, [id], (error) => {
+    pool.query(sql, [id], (error) => {
 
         if (error) {
 
@@ -4518,7 +4534,7 @@ app.put("/restablecer-fecha-inicio/:docenteId", (req, res) => {
 
     const docenteId = req.params.docenteId;
 
-    conexion.query(
+    pool.query(
 
         "DELETE FROM asistencias WHERE docente_id = ?",
 
@@ -4537,7 +4553,7 @@ app.put("/restablecer-fecha-inicio/:docenteId", (req, res) => {
 
             }
 
-            conexion.query(
+            pool.query(
 
                 "DELETE FROM fecha_inicio_docente WHERE docente_id = ?",
 
@@ -4578,7 +4594,7 @@ app.delete("/reiniciar-notas-docente/:docenteId", (req, res) => {
     const { docenteId } = req.params;
 
     // Primero obtener el conteo
-    conexion.query(
+    pool.query(
         "SELECT COUNT(*) as total FROM notas WHERE docente_id = ?",
         [docenteId],
         (error, countResult) => {
@@ -4593,7 +4609,7 @@ app.delete("/reiniciar-notas-docente/:docenteId", (req, res) => {
             const total = countResult[0].total;
 
             // Eliminar las notas
-            conexion.query(
+            pool.query(
                 "DELETE FROM notas WHERE docente_id = ?",
                 [docenteId],
                 (err, resultado) => {
@@ -4620,7 +4636,7 @@ app.delete("/reiniciar-notas-docente/:docenteId", (req, res) => {
 app.delete("/reiniciar-conducta-docente/:docenteId", (req, res) => {
     const { docenteId } = req.params;
 
-    conexion.query(
+    pool.query(
         "SELECT COUNT(*) as total FROM conductas WHERE docente = (SELECT nombre FROM usuarios WHERE id = ?)",
         [docenteId],
         (error, countResult) => {
@@ -4634,7 +4650,7 @@ app.delete("/reiniciar-conducta-docente/:docenteId", (req, res) => {
 
             const total = countResult[0].total;
 
-            conexion.query(
+            pool.query(
                 "DELETE FROM conductas WHERE docente = (SELECT nombre FROM usuarios WHERE id = ?)",
                 [docenteId],
                 (err, resultado) => {
@@ -4662,7 +4678,7 @@ app.delete("/eliminar-foros-docente/:docenteId", (req, res) => {
     const { docenteId } = req.params;
 
     // Obtener los IDs de los foros del docente
-    conexion.query(
+    pool.query(
         "SELECT id FROM foro WHERE docente = (SELECT nombre FROM usuarios WHERE id = ?)",
         [docenteId],
         (error, foros) => {
@@ -4688,7 +4704,7 @@ app.delete("/eliminar-foros-docente/:docenteId", (req, res) => {
             const foroIds = foros.map(f => f.id);
             const placeholders = foroIds.map(() => '?').join(',');
 
-            conexion.query(
+            pool.query(
                 `DELETE FROM respuestas_foro WHERE foro_id IN (${placeholders})`,
                 foroIds,
                 (err) => {
@@ -4701,7 +4717,7 @@ app.delete("/eliminar-foros-docente/:docenteId", (req, res) => {
                     }
 
                     // Eliminar los foros
-                    conexion.query(
+                    pool.query(
                         `DELETE FROM foro WHERE id IN (${placeholders})`,
                         foroIds,
                         (err2) => {
@@ -4733,7 +4749,7 @@ app.delete("/eliminar-foros-docente/:docenteId", (req, res) => {
 // Ocultar todos los foros de un docente
 app.put("/ocultar-foros-docente/:docenteId", (req, res) => {
     const { docenteId } = req.params;
-    conexion.query(
+    pool.query(
         "SELECT nombre FROM usuarios WHERE id = ?",
         [docenteId],
         (error, usuario) => {
@@ -4744,7 +4760,7 @@ app.put("/ocultar-foros-docente/:docenteId", (req, res) => {
                 });
             }
             const nombreDocente = usuario[0].nombre;
-            conexion.query(
+            pool.query(
                 "UPDATE foro SET visible = 0 WHERE docente = ?",
                 [nombreDocente],
                 (err, resultado) => {
@@ -4769,7 +4785,7 @@ app.put("/ocultar-foros-docente/:docenteId", (req, res) => {
 // Mostrar todos los foros de un docente
 app.put("/mostrar-foros-docente/:docenteId", (req, res) => {
     const { docenteId } = req.params;
-    conexion.query(
+    pool.query(
         "SELECT nombre FROM usuarios WHERE id = ?",
         [docenteId],
         (error, usuario) => {
@@ -4780,7 +4796,7 @@ app.put("/mostrar-foros-docente/:docenteId", (req, res) => {
                 });
             }
             const nombreDocente = usuario[0].nombre;
-            conexion.query(
+            pool.query(
                 "UPDATE foro SET visible = 1 WHERE docente = ?",
                 [nombreDocente],
                 (err, resultado) => {
@@ -4809,7 +4825,7 @@ app.put("/mostrar-foros-docente/:docenteId", (req, res) => {
 // Ocultar todos los Quizziz de un docente
 app.put("/ocultar-quizziz-docente/:docenteId", (req, res) => {
     const { docenteId } = req.params;
-    conexion.query(
+    pool.query(
         "SELECT id, nombre FROM usuarios WHERE id = ? AND rol = 'docente'",
         [docenteId],
         (error, usuario) => {
@@ -4819,7 +4835,7 @@ app.put("/ocultar-quizziz-docente/:docenteId", (req, res) => {
                     mensaje: "Docente no encontrado"
                 });
             }
-            conexion.query(
+            pool.query(
                 "UPDATE quizzes SET visible = 0 WHERE docente_id = ?",
                 [docenteId],
                 (err, resultado) => {
@@ -4844,7 +4860,7 @@ app.put("/ocultar-quizziz-docente/:docenteId", (req, res) => {
 // Mostrar todos los Quizziz de un docente
 app.put("/mostrar-quizziz-docente/:docenteId", (req, res) => {
     const { docenteId } = req.params;
-    conexion.query(
+    pool.query(
         "SELECT id, nombre FROM usuarios WHERE id = ? AND rol = 'docente'",
         [docenteId],
         (error, usuario) => {
@@ -4854,7 +4870,7 @@ app.put("/mostrar-quizziz-docente/:docenteId", (req, res) => {
                     mensaje: "Docente no encontrado"
                 });
             }
-            conexion.query(
+            pool.query(
                 "UPDATE quizzes SET visible = 1 WHERE docente_id = ?",
                 [docenteId],
                 (err, resultado) => {
@@ -4895,7 +4911,7 @@ app.get("/horario/:idCurso", (req, res) => {
         ORDER BY dia, hora_inicio
     `;
 
-    conexion.query(sql, [idCurso], (err, resultados) => {
+    pool.query(sql, [idCurso], (err, resultados) => {
 
         if (err) {
 
@@ -4928,7 +4944,7 @@ app.post("/horario/guardar", (req, res) => {
 
     // Si no hay datos, solo eliminamos el horario existente
     if (!Array.isArray(horario) || horario.length === 0) {
-        conexion.query(
+        pool.query(
             "DELETE FROM horarios WHERE id_curso = ?",
             [idCurso],
             (err) => {
@@ -4959,20 +4975,20 @@ app.post("/horario/guardar", (req, res) => {
     }
 
     // Iniciar transacción
-    conexion.query("START TRANSACTION", (err) => {
+    pool.query("START TRANSACTION", (err) => {
         if (err) {
             console.error("❌ Error iniciando transacción:", err);
             return res.status(500).json({ ok: false, mensaje: "Error interno" });
         }
 
         // Eliminar horario existente
-        conexion.query(
+        pool.query(
             "DELETE FROM horarios WHERE id_curso = ?",
             [idCurso],
             (err) => {
                 if (err) {
                     console.error("❌ Error eliminando horario:", err);
-                    return conexion.query("ROLLBACK", () => {
+                    return pool.query("ROLLBACK", () => {
                         res.status(500).json({ ok: false, mensaje: "Error eliminando horario" });
                     });
                 }
@@ -4987,7 +5003,7 @@ app.post("/horario/guardar", (req, res) => {
                     h.hora_fin
                 ]);
 
-                conexion.query(
+                pool.query(
                     `INSERT INTO horarios 
                     (id_curso, id_materia, id_docente, dia, hora_inicio, hora_fin) 
                     VALUES ?`,
@@ -4995,7 +5011,7 @@ app.post("/horario/guardar", (req, res) => {
                     (err2) => {
                         if (err2) {
                             console.error("❌ Error insertando horario:", err2);
-                            return conexion.query("ROLLBACK", () => {
+                            return pool.query("ROLLBACK", () => {
                                 res.status(500).json({
                                     ok: false,
                                     mensaje: "Error guardando horario: " + err2.message
@@ -5003,7 +5019,7 @@ app.post("/horario/guardar", (req, res) => {
                             });
                         }
 
-                        conexion.query("COMMIT", () => {
+                        pool.query("COMMIT", () => {
                             console.log("✅ Horario guardado correctamente para curso:", idCurso);
                             res.json({
                                 ok: true,
@@ -5024,7 +5040,7 @@ app.get("/horario-alumno/:usuarioId", (req, res) => {
     console.log("🔍 Buscando horario para alumno:", usuarioId);
 
     // Primero obtener el perfil del alumno
-    conexion.query(
+    pool.query(
         `
         SELECT curso, paralelo, especialidad
         FROM perfiles
@@ -5065,7 +5081,7 @@ app.get("/horario-alumno/:usuarioId", (req, res) => {
                 params.push(especialidad || '');
             }
 
-            conexion.query(sqlCursos, params, (err2, cursos) => {
+            pool.query(sqlCursos, params, (err2, cursos) => {
                 if (err2) {
                     console.error("❌ Error obteniendo curso:", err2);
                     return res.status(500).json([]);
@@ -5080,7 +5096,7 @@ app.get("/horario-alumno/:usuarioId", (req, res) => {
                 console.log("✅ Curso encontrado:", idCurso);
 
                 // Obtener el horario
-                conexion.query(
+                pool.query(
                     `
                     SELECT
                         h.*,
@@ -5112,7 +5128,7 @@ app.get("/horario-alumno/:usuarioId", (req, res) => {
 
 app.get("/control-academico", (req, res) => {
 
-    conexion.query(
+    pool.query(
 
         "SELECT * FROM control_academico WHERE id = 1",
 
@@ -5154,7 +5170,7 @@ app.put("/control-academico", (req, res) => {
 
     } = req.body;
 
-    conexion.query(
+    pool.query(
 
         `
         UPDATE control_academico
@@ -5233,7 +5249,7 @@ app.post("/guardar-control-academico", (req, res) => {
 
     `;
 
-    conexion.query(
+    pool.query(
 
         sql,
 
@@ -5274,7 +5290,7 @@ app.post("/guardar-control-academico", (req, res) => {
 
 app.get("/estado-control-academico", (req, res) => {
 
-    conexion.query(
+    pool.query(
 
         `
         SELECT
@@ -5322,7 +5338,7 @@ app.post("/desbloquear-notas-docente", (req, res) => {
 
     } = req.body;
 
-    conexion.query(
+    pool.query(
 
         `
         SELECT id
@@ -5372,7 +5388,7 @@ app.post("/desbloquear-notas-docente", (req, res) => {
                 Date.now() + 24 * 60 * 60 * 1000
             );
 
-            conexion.query(
+            pool.query(
 
                 `
                 INSERT INTO autorizaciones
@@ -5448,7 +5464,7 @@ app.post("/desbloquear-conducta-docente", (req, res) => {
     console.log("Docente:", docente_id);
     console.log("Soporte:", soporte_id);
 
-    conexion.query(
+    pool.query(
 
         `
         SELECT id
@@ -5494,7 +5510,7 @@ app.post("/desbloquear-conducta-docente", (req, res) => {
                 Date.now() + 24*60*60*1000
             );
 
-            conexion.query(
+            pool.query(
 
                 `
                 INSERT INTO autorizaciones
@@ -5546,7 +5562,7 @@ app.post("/desbloquear-conducta-docente", (req, res) => {
 
 // Obtener todos los foros con estado de visibilidad
 app.get("/foros-soporte", (req, res) => {
-    conexion.query(
+    pool.query(
         `SELECT 
             f.*,
             u.nombre AS docente_nombre,
@@ -5568,7 +5584,7 @@ app.get("/foros-soporte", (req, res) => {
 app.put("/ocultar-foro/:id", (req, res) => {
     const { id } = req.params;
     
-    conexion.query(
+    pool.query(
         "UPDATE foro SET visible = 0 WHERE id = ?",
         [id],
         (error, resultado) => {
@@ -5599,7 +5615,7 @@ app.put("/ocultar-foro/:id", (req, res) => {
 app.put("/mostrar-foro/:id", (req, res) => {
     const { id } = req.params;
     
-    conexion.query(
+    pool.query(
         "UPDATE foro SET visible = 1 WHERE id = ?",
         [id],
         (error, resultado) => {
@@ -5632,7 +5648,7 @@ app.put("/mostrar-foro/:id", (req, res) => {
 
 // Obtener todos los quizzes con estado de visibilidad
 app.get("/quizzes-soporte", (req, res) => {
-    conexion.query(
+    pool.query(
         `SELECT 
             q.*,
             m.nombre AS materia_nombre,
@@ -5658,7 +5674,7 @@ app.get("/quizzes-soporte", (req, res) => {
 app.put("/ocultar-quiz/:id", (req, res) => {
     const { id } = req.params;
     
-    conexion.query(
+    pool.query(
         "UPDATE quizzes SET visible = 0 WHERE id = ?",
         [id],
         (error, resultado) => {
@@ -5689,7 +5705,7 @@ app.put("/ocultar-quiz/:id", (req, res) => {
 app.put("/mostrar-quiz/:id", (req, res) => {
     const { id } = req.params;
     
-    conexion.query(
+    pool.query(
         "UPDATE quizzes SET visible = 1 WHERE id = ?",
         [id],
         (error, resultado) => {
