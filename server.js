@@ -40,9 +40,14 @@ const upload = multer({
 // CONEXIÓN A MYSQL CON RECONEXIÓN AUTOMÁTICA
 // ============================================
 
-let conexionActiva = true;
-
 function crearConexionMySQL() {
+    // Si existe DATABASE_URL, usarla directamente
+    if (process.env.DATABASE_URL) {
+        console.log('📡 Usando DATABASE_URL para conectar a MySQL');
+        return mysql.createConnection(process.env.DATABASE_URL);
+    }
+    
+    // Sino, usar variables individuales
     return mysql.createConnection({
         host: process.env.DB_HOST || "localhost",
         user: process.env.DB_USER || "root",
