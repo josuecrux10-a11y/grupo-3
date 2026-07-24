@@ -36,19 +36,12 @@ const upload = multer({
     storage
 });
 // Crear una conexión con la base de datos MySQL
-const conexion = mysql.createConnection({
-
-    // Dirección del servidor donde se encuentra la base de datos
-    host: "localhost",
-
-    // Usuario con permisos para acceder a MySQL
-    user: "root",
-
-    // Contraseña del usuario de MySQL
-    password: "123456",
-
-    // Nombre de la base de datos que utilizará la aplicación
-    database: "portal_estudiantil"
+const conexion = mysql.createPool({
+    host: process.env.MYSQLHOST,
+    user: process.env.MYSQLUSER,
+    password: process.env.MYSQLPASSWORD,
+    database: process.env.MYSQLDATABASE,
+    port: process.env.MYSQLPORT
 });
 
 function verificarCarpetaRespaldos() {
