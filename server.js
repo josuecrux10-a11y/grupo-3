@@ -36,8 +36,6 @@ const upload = multer({
     storage
 });
 // Crear una conexión con la base de datos MySQL
-const mysql = require("mysql2");
-
 const conexion = mysql.createConnection({
     host: process.env.MYSQLHOST,
     user: process.env.MYSQLUSER,
