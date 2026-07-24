@@ -50,7 +50,7 @@ async function login() {
     }
 
     try {
-        const respuesta = await fetch("http://localhost:3000/login", {
+        const respuesta = await fetch('/api/login', {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
