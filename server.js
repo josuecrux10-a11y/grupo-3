@@ -511,6 +511,9 @@ conexion.connect((error) => {
 app.get("/", (req, res) => {
     res.sendFile(__dirname + "/proyect/index.html");
 });
+app.get("/test", (req, res) => {
+    res.send("✅ El servidor está funcionando correctamente");
+});
 // Ruta que permite registrar un nuevo usuario
 app.post("/registrar", (req, res) => {
     const { nombre, password, rol, curso, especialidad, materias } = req.body;
