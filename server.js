@@ -36,20 +36,65 @@ const upload = multer({
     storage
 });
 // Crear una conexión con la base de datos MySQL
-const conexion = mysql.createConnection({
+// ============================================
+// CONEXIÓN A MYSQL CON RECONEXIÓN AUTOMÁTICA
+// ============================================
 
-    // Dirección del servidor donde se encuentra la base de datos
-    host: "localhost",
+let conexionActiva = true;
 
-    // Usuario con permisos para acceder a MySQL
-    user: "root",
+function crearConexionMySQL() {
+    return mysql.createConnection({
+        host: process.env.DB_HOST || "localhost",
+        user: process.env.DB_USER || "root",
+        password: process.env.DB_PASSWORD || "123456",
+        database: process.env.DB_NAME || "portal_estudiantil",
+        port: process.env.DB_PORT || 3306,
+        connectTimeout: 10000,
+        ssl: process.env.DB_SSL ? {
+            rejectUnauthorized: false
+        } : false
+    });
+}
 
-    // Contraseña del usuario de MySQL
-    password: "123456",
+let conexion = crearConexionMySQL();
 
-    // Nombre de la base de datos que utilizará la aplicación
-    database: "portal_estudiantil"
+function reconectarMySQL() {
+    console.log('🔄 Intentando reconectar a MySQL...');
+    conexion = crearConexionMySQL();
+    
+    conexion.connect((err) => {
+        if (err) {
+            console.error('❌ Error reconectando:', err.message);
+            conexionActiva = false;
+            setTimeout(reconectarMySQL, 10000);
+        } else {
+            console.log('✅ Reconectado a MySQL');
+            conexionActiva = true;
+        }
+    });
+}
+
+conexion.on('error', (err) => {
+    console.error('❌ Error en MySQL:', err.message);
+    conexionActiva = false;
+    if (err.code === 'PROTOCOL_CONNECTION_LOST' || 
+        err.code === 'ECONNRESET' ||
+        err.code === 'ETIMEDOUT') {
+        reconectarMySQL();
+    }
 });
+
+setInterval(() => {
+    if (conexionActiva) {
+        conexion.query('SELECT 1', (err) => {
+            if (err) {
+                console.error('❌ Ping falló:', err.message);
+                conexionActiva = false;
+                reconectarMySQL();
+            }
+        });
+    }
+}, 30000);
 
 function verificarCarpetaRespaldos() {
 
@@ -3619,11 +3664,17 @@ app.get("/descargar-respaldo/:respaldo/:archivo", (req, res) => {
 
 });
 
-app.listen(3000, () => {
+const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
 
-    console.log("Servidor ejecutándose en puerto 3000");
+    console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
 
     setInterval(() => {
+
+        if (!conexionActiva) {
+            console.log('⏳ Conexión inactiva, esperando reconexión...');
+            return;
+        }
 
         conexion.query(
 
@@ -3636,10 +3687,15 @@ app.listen(3000, () => {
             (err, resultado) => {
 
                 if (err) {
-
-                    console.error(err);
+                    console.error('❌ Error en consulta automática:', err.message);
+                    conexionActiva = false;
+                    setTimeout(reconectarMySQL, 2000);
                     return;
+                }
 
+                if (!resultado || resultado.length === 0) {
+                    console.log('⚠️ No se encontró control_academico');
+                    return;
                 }
 
                 const control = resultado[0];
@@ -3671,16 +3727,12 @@ app.listen(3000, () => {
                         (err, updateResultado) => {
 
                             if (err) {
-
-                                console.error("Error bloqueando notas:", err);
+                                console.error("❌ Error bloqueando notas:", err.message);
                                 return;
-
                             }
 
-                            if (updateResultado.affectedRows > 0) {
-
+                            if (updateResultado && updateResultado.affectedRows > 0) {
                                 console.log("🔒 Notas bloqueadas automáticamente.");
-
                             }
 
                         }
@@ -3715,16 +3767,12 @@ app.listen(3000, () => {
                         (err, updateResultado) => {
 
                             if (err) {
-
-                                console.error("Error bloqueando conducta:", err);
+                                console.error("❌ Error bloqueando conducta:", err.message);
                                 return;
-
                             }
 
-                            if (updateResultado.affectedRows > 0) {
-
+                            if (updateResultado && updateResultado.affectedRows > 0) {
                                 console.log("🔒 Conducta bloqueada automáticamente.");
-
                             }
 
                         }
