@@ -509,7 +509,26 @@ conexion.connect((error) => {
 
 });
 app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/project/index.html");
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Mi App en Railway</title>
+            <style>
+                body { font-family: Arial; text-align: center; padding: 50px; background: #f0f0f0; }
+                h1 { color: #4CAF50; }
+                .container { background: white; padding: 30px; border-radius: 10px; max-width: 600px; margin: auto; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🚀 Servidor funcionando en Railway</h1>
+                <p>✅ Conectado a MySQL correctamente</p>
+                <p>📅 Fecha: ${new Date().toLocaleString()}</p>
+            </div>
+        </body>
+        </html>
+    `);
 });
 app.get("/test", (req, res) => {
     res.send("✅ El servidor está funcionando correctamente");
