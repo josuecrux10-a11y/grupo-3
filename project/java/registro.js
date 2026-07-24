@@ -202,6 +202,15 @@ async function registrar() {
 
     }
 
+    if (rol === "rector" && !claveRector) {
+
+        return mostrarMensaje(
+            "❌ Ingrese la clave especial del Rector",
+            "error"
+        );
+
+    }
+
     if (rol === "alumno") {
 
         if (!cursoAlumno) {
@@ -287,12 +296,26 @@ async function registrar() {
 
         const data = await res.json();
 
-        console.log(data);
+            console.log(data);
 
-        mostrarMensaje(
-            "✅ Usuario registrado correctamente",
-            "success"
-        );
+
+            if (res.ok) {
+
+                mostrarMensaje(
+                    "✅ Usuario registrado correctamente",
+                    "success"
+                );
+
+            } else {
+
+                mostrarMensaje(
+                    "❌ " + data.mensaje,
+                    "error"
+                );
+
+                return;
+
+            }
 
         if (document.getElementById("regNombre")) {
 
