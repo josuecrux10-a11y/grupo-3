@@ -49,8 +49,8 @@ function crearConexionMySQL() {
         password: process.env.DB_PASSWORD || "123456",
         database: process.env.DB_NAME || "portal_estudiantil",
         port: process.env.DB_PORT || 3306,
-        connectTimeout: 10000,
-        ssl: process.env.DB_SSL ? {
+        connectTimeout: 20000,
+        ssl: process.env.DB_SSL === 'true' ? {
             rejectUnauthorized: false
         } : false
     });
