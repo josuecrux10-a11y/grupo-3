@@ -468,7 +468,7 @@ conexion.connect((error) => {
 
 });
 app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/proyect/index.html");
+    res.sendFile(__dirname + "/project/index.html");
 });
 // Ruta que permite registrar un nuevo usuario
 app.post("/registrar", (req, res) => {
