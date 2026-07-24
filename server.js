@@ -617,7 +617,7 @@ app.post("/verificar-usuario", (req, res) => {
 });
 // Ruta para iniciar sesión
 app.post("/login", (req, res) => {
-
+    console.log("🚀 LOGIN RECIBIDO");
     const { nombre, password } = req.body;
 
     conexion.query(
