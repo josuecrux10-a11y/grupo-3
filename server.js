@@ -36,9 +36,15 @@ const upload = multer({
     storage
 });
 // Crear una conexión con la base de datos MySQL
-const conexion = mysql.createConnection(
-   process.env.MYSQL_URL || "mysql://root:IrRSmzsnDMzfrWKzWxKZmcmZhyYjTjoU@mysql.railway.internal:3306/railway"
-);
+const mysql = require("mysql2");
+
+const conexion = mysql.createConnection({
+    host: process.env.MYSQLHOST,
+    user: process.env.MYSQLUSER,
+    password: process.env.MYSQLPASSWORD,
+    database: process.env.MYSQLDATABASE,
+    port: process.env.MYSQLPORT
+});
 
 function verificarCarpetaRespaldos() {
 
