@@ -1162,33 +1162,43 @@ app.post("/asignar-alumno", (req, res) => {
 
     const {
         usuario_id,
-        paralelo
+        curso,
+        paralelo,
+        especialidad
     } = req.body;
 
     const sql = `
         UPDATE perfiles
         SET
+            curso = ?,
             paralelo = ?,
+            especialidad = ?,
             estado_asignacion = 'asignado'
         WHERE usuario_id = ?
     `;
 
     conexion.query(
         sql,
-        [paralelo, usuario_id],
+        [
+            curso,
+            paralelo,
+            especialidad || "",
+            usuario_id
+        ],
         (error) => {
 
             if (error) {
                 console.log(error);
 
                 return res.status(500).json({
-                    mensaje: "Error al asignar alumno"
+                    success:false,
+                    mensaje:"Error al asignar alumno"
                 });
             }
 
             res.json({
-                success: true,
-                mensaje: "Alumno asignado correctamente"
+                success:true,
+                mensaje:"Alumno asignado correctamente"
             });
 
         }

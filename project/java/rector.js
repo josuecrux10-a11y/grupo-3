@@ -18,9 +18,168 @@ async function inicializarSistema() {
 
     console.log("✅ Sistema inicializado correctamente");
 }
-function cargarNuevosRegistrados() {
-    // Agrega aquí la lógica para cargar los registros nuevos si la necesitas, 
-    // o déjala vacía para que el sistema ya no tire error al iniciar sesión.
+async function cargarNuevosRegistrados() {
+
+    const contenedor = document.getElementById("nuevosUsuarios");
+
+    if (!contenedor) return;
+
+    contenedor.innerHTML = "";
+
+    try {
+
+        const res = await fetch("/perfiles");
+        const alumnos = await res.json();
+
+        const pendientes = alumnos.filter(a => a.estado_asignacion !== "asignado");
+
+        if (pendientes.length === 0) {
+
+            contenedor.innerHTML = `
+                <div style="
+                    background:white;
+                    padding:20px;
+                    border-radius:12px;
+                    text-align:center;
+                    color:#666;
+                ">
+                    ✅ No hay alumnos pendientes
+                </div>
+            `;
+
+            return;
+
+        }
+
+        pendientes.forEach(alumno => {
+
+            const card = document.createElement("div");
+
+            card.className = "cardAlumno";
+
+            card.style.cssText = `
+                background:white;
+                border-radius:15px;
+                padding:18px;
+                margin-bottom:15px;
+                box-shadow:0 4px 10px rgba(0,0,0,.08);
+            `;
+
+            card.innerHTML = `
+
+                <h3 style="margin:0 0 10px 0;">
+                    👨‍🎓 ${alumno.nombre}
+                </h3>
+
+                <label>Curso</label><br>
+
+                <select id="curso_${alumno.usuario_id}" onchange="actualizarEspecialidad(${alumno.usuario_id})">
+
+                    <option value="">Seleccione</option>
+
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+
+                    <option value="1BGU">1BGU</option>
+                    <option value="2BGU">2BGU</option>
+                    <option value="3BGU">3BGU</option>
+
+                </select>
+
+                <br><br>
+
+                <div id="espDiv_${alumno.usuario_id}" style="display:none;">
+
+                    <label>Especialidad</label><br>
+
+                    <select id="especialidad_${alumno.usuario_id}">
+
+                        <option value="Ciencias">Ciencias</option>
+                        <option value="Contabilidad">Contabilidad</option>
+                        <option value="Computacion">Computación</option>
+
+                    </select>
+
+                    <br><br>
+
+                </div>
+
+                <label>Paralelo</label><br>
+
+                <select id="paralelo_${alumno.usuario_id}">
+
+                    <option value="">Seleccione</option>
+
+                    <option>A</option>
+                    <option>B</option>
+
+                </select>
+
+                <br><br>
+
+                <button class="btn-editar">
+
+                    ✅ Asignar
+
+                </button>
+
+            `;
+
+            card.querySelector("button").onclick = () => {
+
+                const curso = document.getElementById(`curso_${alumno.usuario_id}`).value;
+
+                const paralelo = document.getElementById(`paralelo_${alumno.usuario_id}`).value;
+
+                const especialidad = document.getElementById(`especialidad_${alumno.usuario_id}`)?.value || "";
+
+                if (!curso || !paralelo) {
+
+                    return alert("Seleccione curso y paralelo.");
+
+                }
+
+                asignarAlumno(
+                    alumno.usuario_id,
+                    curso,
+                    paralelo,
+                    especialidad
+                );
+
+            };
+
+            contenedor.appendChild(card);
+
+        });
+
+    } catch (e) {
+
+        console.error(e);
+
+    }
+
+}
+function actualizarEspecialidad(usuario_id) {
+
+    const curso = document.getElementById(`curso_${usuario_id}`).value;
+
+    const div = document.getElementById(`espDiv_${usuario_id}`);
+
+    if (
+        curso === "1BGU" ||
+        curso === "2BGU" ||
+        curso === "3BGU"
+    ) {
+
+        div.style.display = "block";
+
+    } else {
+
+        div.style.display = "none";
+
+    }
+
 }
 
 function cargarPanelRector() {
@@ -539,53 +698,52 @@ async function eliminarAlumno(id, paralelo) {
 async function asignarAlumno(
     usuario_id,
     curso,
-    paralelo
-) {
+    paralelo,
+    especialidad=""
+){
 
-    try {
+    try{
 
-        const res = await fetch(
-            "/asignar-alumno",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    usuario_id,
-                    curso,
-                    paralelo
-                })
-            }
-        );
+        const res=await fetch("/asignar-alumno",{
 
-        const data = await res.json();
+            method:"POST",
 
-        // Si el paralelo está lleno
-        if (!data.success) {
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+
+                usuario_id,
+                curso,
+                paralelo,
+                especialidad
+
+            })
+
+        });
+
+        const data=await res.json();
+
+        if(!data.success){
 
             return mostrarMensaje(
-                "❌ Este paralelo ya tiene 15 alumnos",
+                "❌ Error al asignar",
                 "error"
             );
 
         }
 
-        cargarPanelRector();
+        await cargarPanelRector();
 
         mostrarMensaje(
-            "✅ Alumno asignado correctamente",
+            "✅ Alumno asignado",
             "success"
         );
 
-    } catch (error) {
+    }catch(err){
 
-        console.error(error);
-
-        mostrarMensaje(
-            "❌ Error al asignar alumno",
-            "error"
-        );
+        console.error(err);
 
     }
 
