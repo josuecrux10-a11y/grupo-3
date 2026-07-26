@@ -2583,14 +2583,21 @@ app.get("/solicitudes-docentes", (req, res) => {
     const sql = `
         SELECT
             u.id,
-            u.nombre
+            u.nombre,
+            pd.materia
         FROM usuarios u
+
+        INNER JOIN perfil_docente pd
+            ON pd.usuario_id = u.id
+
         WHERE u.rol = 'docente'
-          AND u.id NOT IN (
-                SELECT docente_id
-                FROM docentes_asignados
-                WHERE docente_id IS NOT NULL
-          )
+
+        AND u.id NOT IN (
+            SELECT docente_id
+            FROM docentes_asignados
+            WHERE docente_id IS NOT NULL
+        )
+
         ORDER BY u.nombre
     `;
 
