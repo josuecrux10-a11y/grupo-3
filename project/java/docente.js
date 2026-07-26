@@ -1827,7 +1827,13 @@ async function guardarDocente(){
     const formacion =
         document.getElementById("dFormacion").value.trim();
 
+    // Obtener las materias marcadas
+    const materia = [...document.querySelectorAll("#materiasDocente input:checked")]
+        .map(c => c.value)
+        .join(",");
+
     try{
+
         const respuesta = await fetch(
             "/guardar-perfil-docente",
             {
@@ -1838,13 +1844,14 @@ async function guardarDocente(){
                 body: JSON.stringify({
                     usuario_id: sesion.id,
                     titulo,
+                    materia,
                     correo,
                     telefono,
                     experiencia,
                     frase,
                     formacion,
                     presentacion,
-                    foto,
+                    foto
                 })
             }
         );
@@ -1860,6 +1867,7 @@ async function guardarDocente(){
         }else{
 
             alert("❌ Error guardando perfil");
+
         }
 
     }catch(error){
@@ -1867,7 +1875,9 @@ async function guardarDocente(){
         console.error(error);
 
         alert("❌ Error conectando con servidor");
+
     }
+
 }
 
 function bloquearPerfilDocente(){
