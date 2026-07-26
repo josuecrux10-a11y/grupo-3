@@ -1998,24 +1998,20 @@ app.get("/perfil/:usuarioId", (req, res) => {
         }
     );
 });
-app.get("/perfiles", (req,res)=>{
+app.get("/perfiles", (req, res) => {
 
     conexion.query(
 
         `
         SELECT *
         FROM perfiles
-        WHERE estado_asignacion='asignado'
         `,
 
-        (err,resultados)=>{
+        (err, resultados) => {
 
-            if(err){
-
+            if (err) {
                 console.error(err);
-
                 return res.status(500).json([]);
-
             }
 
             res.json(resultados);
