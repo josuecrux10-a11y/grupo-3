@@ -723,17 +723,20 @@ function mostrarDocentesAsignadosRector() {
 //Cambio actualizado 
 function mostrarRector(id) {
 
-    // Ocultar todas las secciones
-    document
-        .querySelectorAll(".seccionRector")
-        .forEach(seccion => {
-            seccion.style.display = "none";
-        });
+    document.querySelectorAll(".seccionRector").forEach(seccion => {
+        seccion.style.display = "none";
+    });
 
-    // Mostrar la sección seleccionada
     document.getElementById(id).style.display = "block";
 
-    // Si se abre la sección de horarios, cargar los paralelos
+    if (id === "gestDocentes") {
+        cargarSolicitudesMaterias();
+    }
+
+    if (id === "seccionDocentesAsignados") {
+        cargarDocentesAsignados();
+    }
+
     if (id === "gestHorarios") {
         cargarParalelosParaHorario();
     }
@@ -741,13 +744,14 @@ function mostrarRector(id) {
 }
 
 async function cargarSolicitudesMaterias() {
+
     const contenedor = document.getElementById("listaSolicitudesMaterias");
     if (!contenedor) return;
 
     contenedor.innerHTML = "";
 
     try {
-        // 1. Pedimos las solicitudes Y los asignados al mismo tiempo
+
         const [resSolicitudes, resAsignados] = await Promise.all([
             fetch("/solicitudes-docentes"),
             fetch("/docentes-asignados")
@@ -756,33 +760,86 @@ async function cargarSolicitudesMaterias() {
         const docentesSolicitudes = await resSolicitudes.json();
         const docentesAsignados = await resAsignados.json();
 
-        // 2. Extraemos los IDs de los que YA fueron asignados
-        const idsAsignados = docentesAsignados.map(a => String(a.uid || a.docente_id || a.id));
+        // IDs de docentes que ya tienen materia asignada
+        const idsAsignados = docentesAsignados.map(d => String(d.docente_id));
 
-        // 3. Filtramos para dejar SOLO los pendientes
-        const pendientesReales = docentesSolicitudes.filter(docente => {
-            const idDocente = String(docente.id || docente.uid || docente.docente_id);
-            return !idsAsignados.includes(idDocente);
-        });
+        // Solo mostrar los que aún no tienen materia
+        const pendientes = docentesSolicitudes.filter(docente =>
+            !idsAsignados.includes(String(docente.id))
+        );
 
-        // 4. Si ya no hay pendientes reales, mostramos el mensaje
-        if (pendientesReales.length === 0) {
+        if (pendientes.length === 0) {
+
             contenedor.innerHTML = `
-                <div style="text-align:center; padding:30px; color:#666; background:white; border-radius:15px;">
-                    ✅ No hay solicitudes de materias pendientes
+                <div style="background:white;padding:25px;border-radius:15px;text-align:center;">
+                    ✅ No hay solicitudes de materias pendientes.
                 </div>
             `;
+
             return;
         }
 
-        // 5. Recorremos únicamente los pendientes reales
-        pendientesReales.forEach(data => {
-            // ... (Aquí sigue todo tu código tal cual de materiasUnicas, card, select, etc.)
+        // Materias disponibles
+        const materias = [
+            {id:1,nombre:"Matemáticas"},
+            {id:2,nombre:"Inglés"},
+            {id:3,nombre:"Ciudadanía"},
+            {id:4,nombre:"Química"},
+            {id:5,nombre:"Emprendimiento"},
+            {id:6,nombre:"Lengua y Literatura"},
+            {id:7,nombre:"Historia"},
+            {id:8,nombre:"Biología"},
+            {id:9,nombre:"Educación Física"},
+            {id:10,nombre:"Computación"},
+            {id:11,nombre:"Tutoría"},
+            {id:12,nombre:"Proyecto"}
+        ];
+
+        pendientes.forEach(docente => {
+
+            const opciones = materias.map(m =>
+                `<option value="${m.id}">${m.nombre}</option>`
+            ).join("");
+
+            contenedor.innerHTML += `
+
+                <div class="card p-3 mb-3 shadow-sm"
+                    style="background:#fff;border-radius:15px;border-left:6px solid #3498db;">
+
+                    <h4>👨‍🏫 ${docente.nombre}</h4>
+
+                    <select id="materia_${docente.id}"
+                        style="width:100%;padding:10px;margin:15px 0;border-radius:8px;">
+
+                        <option value="">Seleccione una materia</option>
+                        ${opciones}
+
+                    </select>
+
+                    <button
+                        onclick="asignarMateriaDocente(${docente.id})"
+                        style="background:#27ae60;color:white;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;">
+
+                        📚 Asignar materia
+
+                    </button>
+
+                </div>
+
+            `;
         });
 
     } catch (error) {
-        console.error("❌ Error cargando solicitudes:", error);
+
+        console.error("Error:", error);
+
+        contenedor.innerHTML = `
+            <div style="color:red;text-align:center;">
+                Error al cargar los docentes.
+            </div>
+        `;
     }
+
 }
 
 async function asignarMateriaDocente(docenteId) {
