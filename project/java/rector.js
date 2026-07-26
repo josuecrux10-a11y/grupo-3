@@ -781,18 +781,18 @@ async function cargarSolicitudesMaterias() {
 
         // Materias disponibles
         const materias = [
-            {id:1,nombre:"Matemáticas"},
+            {id:1,nombre:"Matemática"},
             {id:2,nombre:"Inglés"},
             {id:3,nombre:"Ciudadanía"},
             {id:4,nombre:"Química"},
             {id:5,nombre:"Emprendimiento"},
             {id:6,nombre:"Lengua y Literatura"},
-            {id:7,nombre:"Historia"},
-            {id:8,nombre:"Biología"},
+            {id:7,nombre:"Biología"},
+            {id:8,nombre:"Historia"},
             {id:9,nombre:"Educación Física"},
-            {id:10,nombre:"Computación"},
-            {id:11,nombre:"Tutoría"},
-            {id:12,nombre:"Proyecto"}
+            {id:10,nombre:"Tutoría"},
+            {id:11,nombre:"Proyecto"},
+            {id:12,nombre:"Computación"}
         ];
 
         pendientes.forEach(docente => {
@@ -917,18 +917,18 @@ async function cargarDocentesAsignados() {
 
         // Mapa con las 12 materias reales
         const mapaMaterias = {
-            "1": "Matemáticas",
-            "2": "Inglés",
-            "3": "Ciudadanía",
-            "4": "Química",
-            "5": "Emprendimiento",
-            "6": "Lengua y Literatura",
-            "7": "Historia",
-            "8": "Biología",
-            "9": "Educación Física",
-            "10": "Computación",
-            "11": "Tutoría",
-            "12": "Proyecto"
+            "1":"Matemática",
+            "2":"Inglés",
+            "3":"Ciudadanía",
+            "4":"Química",
+            "5":"Emprendimiento",
+            "6":"Lengua y Literatura",
+            "7":"Biología",
+            "8":"Historia",
+            "9":"Educación Física",
+            "10":"Tutoría",
+            "11":"Proyecto",
+            "12":"Computación"
         };
 
         data.forEach(docente => {
