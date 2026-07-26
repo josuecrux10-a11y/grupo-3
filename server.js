@@ -2548,45 +2548,32 @@ app.post("/guardar-fecha-inicio", (req, res) => {
 });
 
 app.get("/solicitudes-docentes", (req, res) => {
-    // Consulta para traer las solicitudes de los docentes que aún NO han sido asignados
+
     const sql = `
-        SELECT 
-            u.id, 
-            u.nombre, 
-            GROUP_CONCAT(DISTINCT m.nombre SEPARATOR ', ') AS materias,
-            GROUP_CONCAT(DISTINCT m.id SEPARATOR ', ') AS materias_ids
+        SELECT
+            u.id,
+            u.nombre
         FROM usuarios u
-        LEFT JOIN solicitudes s ON u.id = s.docente_id
-        LEFT JOIN materias m ON s.materia_id = m.id
-        WHERE u.rol = 'docente' 
-          AND u.id NOT IN (SELECT docente_id FROM docentes_asignados WHERE docente_id IS NOT NULL)
-        GROUP BY u.id
+        WHERE u.rol = 'docente'
+          AND u.id NOT IN (
+                SELECT docente_id
+                FROM docentes_asignados
+                WHERE docente_id IS NOT NULL
+          )
+        ORDER BY u.nombre
     `;
 
-    const dbConexion = typeof db !== "undefined" ? db 
-                     : typeof conexion !== "undefined" ? conexion 
-                     : typeof connection !== "undefined" ? connection 
-                     : null;
+    conexion.query(sql, (err, resultados) => {
 
-    if (!dbConexion) {
-        return res.status(200).json([]); // Evitamos el error 500 devolviendo array vacío
-    }
-
-    dbConexion.query(sql, (err, results) => {
         if (err) {
-            console.error("❌ Error SQL en solicitudes-docentes:", err.message);
-            
-            // RESPALDO DE SEGURIDAD: Si la consulta con JOINs falla, probamos traer directo de usuarios
-            const sqlFallback = "SELECT id, nombre FROM usuarios WHERE rol = 'docente'";
-            dbConexion.query(sqlFallback, (err2, fallbackResults) => {
-                if (err2) return res.status(200).json([]);
-                return res.json(fallbackResults || []);
-            });
-            return;
+            console.error(err);
+            return res.status(500).json([]);
         }
 
-        res.json(results || []);
+        res.json(resultados);
+
     });
+
 });
 
 app.get("/docentes-asignados", (req, res) => {
