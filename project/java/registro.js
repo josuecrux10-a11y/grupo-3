@@ -247,7 +247,7 @@ async function registrar() {
                     "#materiasDocente input:checked"
                 )
             ).map(c => c.value);
-
+            console.log("Materias seleccionadas:", materiasSeleccionadas);
         }
 
         const existeRes = await fetch(

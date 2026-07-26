@@ -553,63 +553,115 @@ app.post("/registrar", (req, res) => {
 
                     }
 
-                    // ===============================
-                    // SI ES ALUMNO CREAR PERFIL
-                    // ===============================
+                            // ===============================
+                            // SI ES ALUMNO CREAR PERFIL
+                            // ===============================
 
-                    if (rol === "alumno") {
+                            if (rol === "alumno") {
 
-                        conexion.query(
+                                conexion.query(
 
-                            `
-                            INSERT INTO perfiles
-                            (
-                                usuario_id,
-                                nombre,
-                                curso,
-                                especialidad,
-                                estado_asignacion,
-                                puede_editar
-                            )
-                            VALUES (?,?,?,?,?,?)
-                            `,
+                                    `
+                                    INSERT INTO perfiles
+                                    (
+                                        usuario_id,
+                                        nombre,
+                                        curso,
+                                        especialidad,
+                                        estado_asignacion,
+                                        puede_editar
+                                    )
+                                    VALUES (?,?,?,?,?,?)
+                                    `,
 
-                            [
-                                resultadoUsuario.insertId,
-                                nombre,
-                                curso || "",
-                                especialidad || "",
-                                "pendiente",
-                                1
-                            ],
+                                    [
+                                        resultadoUsuario.insertId,
+                                        nombre,
+                                        curso || "",
+                                        especialidad || "",
+                                        "pendiente",
+                                        1
+                                    ],
 
-                            (err2) => {
+                                    (err2) => {
 
-                                if (err2) {
+                                        if (err2) {
 
-                                    console.error(err2);
+                                            console.error(err2);
 
-                                    return res.status(500).json({
-                                        mensaje: "Error al crear perfil"
-                                    });
+                                            return res.status(500).json({
+                                                mensaje: "Error al crear perfil"
+                                            });
 
-                                }
+                                        }
 
-                                return res.json({
-                                    mensaje: "Alumno registrado correctamente"
-                                });
+                                        return res.json({
+                                            mensaje: "Alumno registrado correctamente"
+                                        });
+
+                                    }
+
+                                );
 
                             }
 
-                        );
+                            // ===============================
+                            // SI ES DOCENTE CREAR PERFIL
+                            // ===============================
 
-                    } else {
+                            else if (rol === "docente") {
 
-                        return res.json({
-                            mensaje: `${rol} registrado correctamente`
-                        });
+                                conexion.query(
 
-                    }
+                                    `
+                                    INSERT INTO perfil_docente
+                                    (
+                                        usuario_id,
+                                        materia
+                                    )
+                                    VALUES (?,?)
+                                    `,
+
+                                    [
+                                        resultadoUsuario.insertId,
+                                        Array.isArray(materias)
+                                            ? materias.join(", ")
+                                            : (materias || "")
+                                    ],
+
+                                    (err2) => {
+
+                                        if (err2) {
+
+                                            console.error(err2);
+
+                                            return res.status(500).json({
+                                                mensaje: "Error al crear perfil docente"
+                                            });
+
+                                        }
+
+                                        return res.json({
+                                            mensaje: "Docente registrado correctamente"
+                                        });
+
+                                    }
+
+                                );
+
+                            }
+
+                            // ===============================
+                            // OTROS ROLES
+                            // ===============================
+
+                            else {
+
+                                return res.json({
+                                    mensaje: `${rol} registrado correctamente`
+                                });
+
+                            }
 
                 }
 
