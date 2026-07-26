@@ -808,6 +808,15 @@ async function cargarSolicitudesMaterias() {
 
                     <h4>👨‍🏫 ${docente.nombre}</h4>
 
+                    <p style="
+                        margin:10px 0;
+                        color:#555;
+                        font-size:15px;
+                    ">
+                        📚 <strong>Puede impartir:</strong>
+                        ${docente.materia || "No especificó materias"}
+                    </p>
+
                     <select id="materia_${docente.id}"
                         style="width:100%;padding:10px;margin:15px 0;border-radius:8px;">
 
@@ -826,7 +835,7 @@ async function cargarSolicitudesMaterias() {
 
                 </div>
 
-            `;
+                `;   
         });
 
     } catch (error) {
