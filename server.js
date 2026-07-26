@@ -877,6 +877,7 @@ app.post("/guardar-perfil", (req, res) => {
 
 });
 app.post("/guardar-perfil-docente", (req, res) => {
+        console.log("DATOS RECIBIDOS:", req.body);
 
     const {
         usuario_id,
