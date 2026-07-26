@@ -473,35 +473,23 @@ app.get("/", (req, res) => {
 const CLAVE_RECTOR = "rectorUNI";
 app.post("/registrar", (req, res) => {
 
-    const { 
-        nombre, 
-        password, 
-        rol, 
-        curso, 
-        especialidad, 
+    const {
+        nombre,
+        password,
+        rol,
+        curso,
+        especialidad,
         materias,
         claveRector
     } = req.body;
 
-
     console.log("================================");
     console.log("ROL:", rol);
-    console.log("MATERIAS:", materias);
+    console.log("CURSO:", curso);
+    console.log("ESPECIALIDAD:", especialidad);
     console.log("================================");
 
-
-    console.log("📝 Registrando usuario:", {
-        nombre,
-        rol,
-        curso,
-        especialidad
-    });
-
-
-    // ==================================
-    // VALIDAR CLAVE ESPECIAL DEL RECTOR
-    // ==================================
-
+    // VALIDAR CLAVE DEL RECTOR
     if (rol === "rector" && claveRector !== CLAVE_RECTOR) {
 
         return res.status(403).json({
@@ -510,85 +498,126 @@ app.post("/registrar", (req, res) => {
 
     }
 
-
     conexion.query(
         "SELECT id FROM usuarios WHERE nombre = ?",
         [nombre],
         (err, resultado) => {
-
 
             if (err) {
 
                 console.error(err);
 
                 return res.status(500).json({
-                    mensaje:"Error al verificar usuario"
+                    mensaje: "Error al verificar usuario"
                 });
 
             }
-
 
             if (resultado.length > 0) {
 
                 return res.status(400).json({
-                    mensaje:"El nombre de usuario ya existe"
+                    mensaje: "El nombre de usuario ya existe"
                 });
 
             }
-
-
-
-            const sql = `
-                INSERT INTO usuarios
-                (nombre,password,rol,estado_materias)
-                VALUES (?,?,?,?)
-            `;
-
 
             const estado =
                 rol === "docente"
                 ? "pendiente"
                 : null;
 
-
-
             conexion.query(
-                sql,
+
+                `
+                INSERT INTO usuarios
+                (nombre,password,rol,estado_materias)
+                VALUES (?,?,?,?)
+                `,
+
                 [
                     nombre,
                     password,
                     rol,
                     estado
                 ],
-                (error, resultado) => {
 
+                (error, resultadoUsuario) => {
 
-
-                    if(error){
+                    if (error) {
 
                         console.error(error);
 
                         return res.status(500).json({
-                            mensaje:"Error al registrar"
+                            mensaje: "Error al registrar"
                         });
 
                     }
 
+                    // ===============================
+                    // SI ES ALUMNO CREAR PERFIL
+                    // ===============================
 
-                    res.json({
+                    if (rol === "alumno") {
 
-                        mensaje:`${rol} registrado correctamente`
+                        conexion.query(
 
-                    });
+                            `
+                            INSERT INTO perfiles
+                            (
+                                usuario_id,
+                                nombre,
+                                curso,
+                                especialidad,
+                                estado_asignacion,
+                                puede_editar
+                            )
+                            VALUES (?,?,?,?,?,?)
+                            `,
 
+                            [
+                                resultadoUsuario.insertId,
+                                nombre,
+                                curso || "",
+                                especialidad || "",
+                                "pendiente",
+                                1
+                            ],
+
+                            (err2) => {
+
+                                if (err2) {
+
+                                    console.error(err2);
+
+                                    return res.status(500).json({
+                                        mensaje: "Error al crear perfil"
+                                    });
+
+                                }
+
+                                return res.json({
+                                    mensaje: "Alumno registrado correctamente"
+                                });
+
+                            }
+
+                        );
+
+                    } else {
+
+                        return res.json({
+                            mensaje: `${rol} registrado correctamente`
+                        });
+
+                    }
 
                 }
+
             );
 
-
         }
-    );
 
+    );
 
 });
 
