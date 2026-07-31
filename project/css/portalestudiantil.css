@@ -121,3 +121,37 @@ z-index: 100;
         background-color:rgb(49, 135, 52);
         transform: translate Y(-2px);
     }
+    
+    /* Sección de accesos */
+section.secciones:last-of-type{
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 80px !important;
+    text-align: center;
+}
+
+section.secciones:last-of-type .item{
+    flex: 1;
+}
+
+section.secciones:last-of-type h2{
+    color:#fff;
+    font-size:32px;
+    margin-bottom:20px;
+}
+
+section.secciones:last-of-type a{
+    display:inline-block !important;
+    background:#fff !important;
+    color:#000 !important;
+    text-decoration:none !important;
+    padding:15px 30px;
+    border-radius:8px;
+    font-weight:bold;
+}
+
+section.secciones:last-of-type a:hover{
+    background:#00cfe8 !important;
+    color:#fff !important;
+}
