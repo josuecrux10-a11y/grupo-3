@@ -2426,3 +2426,42 @@ body.dark #panelDocente .resultado-quizz-card{
     font-size:18px;
 
 }
+.secciones{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 80px;
+    padding: 40px;
+    background: rgba(0,0,0,.45);
+    border-left: 5px solid #00d9ff;
+    border-radius: 0 10px 10px 0;
+    max-width: 900px;
+    margin: 40px auto;
+}
+
+.opcion{
+    text-align: center;
+}
+
+.opcion h2{
+    color: white;
+    margin-bottom: 20px;
+    font-size: 30px;
+}
+
+.boton{
+    display: inline-block;
+    padding: 15px 30px;
+    background: white;
+    color: black;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: .3s;
+}
+
+.boton:hover{
+    background: #00d9ff;
+    color: white;
+    transform: scale(1.05);
+}
